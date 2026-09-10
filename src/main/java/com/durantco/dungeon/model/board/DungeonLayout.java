@@ -16,13 +16,24 @@ public final class DungeonLayout {
   private final int width;
   private final int height;
   private final int walkableCount;
+  private final List<Room> rooms;
+
+  /**
+   * A layout with no room structure, for generators that do not produce rooms.
+   *
+   * @param walkable row-major grid, true where a piece may stand
+   */
+  public DungeonLayout(boolean[][] walkable) {
+    this(walkable, List.of());
+  }
 
   /**
    * @param walkable row-major grid, true where a piece may stand; copied, so later changes to the
    *     caller's array cannot alter this layout
+   * @param rooms the rooms this layout was built from, empty if the generator has no notion of rooms
    * @throws IllegalArgumentException if the grid is empty or ragged
    */
-  public DungeonLayout(boolean[][] walkable) {
+  public DungeonLayout(boolean[][] walkable, List<Room> rooms) {
     if (walkable.length == 0 || walkable[0].length == 0) {
       throw new IllegalArgumentException("A layout needs at least one cell");
     }
@@ -42,6 +53,15 @@ public final class DungeonLayout {
       }
     }
     this.walkableCount = open;
+    this.rooms = List.copyOf(rooms);
+  }
+
+  /**
+   * @return the rooms this layout was built from, in the order the generator produced them; empty for
+   *     generators with no notion of rooms
+   */
+  public List<Room> rooms() {
+    return rooms;
   }
 
   public int width() {
