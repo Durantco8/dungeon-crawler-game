@@ -21,8 +21,16 @@ public final class FakeBoard implements Board {
 
   private final Deque<CollisionResult> scriptedResults = new ArrayDeque<>();
   private final List<LevelSpec> initCalls = new ArrayList<>();
+  private final List<Move> moves = new ArrayList<>();
   private boolean canFit = true;
-  private int moveHeroCalls;
+
+  /**
+   * One hero move as the model requested it.
+   *
+   * @param drow rows requested, positive is downward
+   * @param dcol columns requested, positive is rightward
+   */
+  public record Move(int drow, int dcol) {}
 
   /**
    * Queues the outcomes that successive moveHero calls will return. Once the queue is empty, further
@@ -46,8 +54,13 @@ public final class FakeBoard implements Board {
     return List.copyOf(initCalls);
   }
 
+  /** The deltas passed to moveHero, in order. */
+  public List<Move> moves() {
+    return List.copyOf(moves);
+  }
+
   public int moveHeroCalls() {
-    return moveHeroCalls;
+    return moves.size();
   }
 
   @Override
@@ -62,7 +75,7 @@ public final class FakeBoard implements Board {
 
   @Override
   public CollisionResult moveHero(int drow, int dcol) {
-    moveHeroCalls++;
+    moves.add(new Move(drow, dcol));
     CollisionResult next = scriptedResults.poll();
     if (next == null) {
       return CollisionResult.free();
