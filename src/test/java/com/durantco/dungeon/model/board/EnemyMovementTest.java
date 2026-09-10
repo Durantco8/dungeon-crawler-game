@@ -9,7 +9,9 @@ import com.durantco.dungeon.model.pieces.Enemy;
 import com.durantco.dungeon.model.pieces.Piece;
 import com.durantco.dungeon.model.pieces.PieceType;
 import com.durantco.dungeon.support.Boards;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -165,23 +167,39 @@ class EnemyMovementTest {
     }
 
     @Test
-    @DisplayName("enemies spawned into a level are armed for the current difficulty")
+    @DisplayName("hard mode spawns a mix of archetypes rather than three of the same hunter")
     void spawnedEnemiesMatchTheDifficulty() {
       BoardImpl board = new BoardImpl(28, 18, new Random(1L), new BspLevelGenerator());
       board.setHardMode(true);
-      board.init(LevelSpec.forLevel(2));
+      board.init(LevelSpec.forLevel(2)); // three enemies, one of each archetype
 
-      int checked = 0;
+      Set<Class<?>> archetypes = new HashSet<>();
       for (int row = 0; row < board.getHeight(); row++) {
         for (int col = 0; col < board.getWidth(); col++) {
           Piece piece = board.get(new Posn(row, col));
           if (piece != null && piece.getType() == PieceType.ENEMY) {
-            assertTrue(((Enemy) piece).movement() instanceof ChaseStrategy);
-            checked++;
+            archetypes.add(((Enemy) piece).movement().getClass());
           }
         }
       }
-      assertEquals(3, checked);
+      assertEquals(
+          Set.of(ChaseStrategy.class, AmbushStrategy.class, PatrolStrategy.class), archetypes);
+    }
+
+    @Test
+    @DisplayName("easy mode spawns nothing that hunts")
+    void easyModeSpawnsOnlyDrifters() {
+      BoardImpl board = new BoardImpl(28, 18, new Random(1L), new BspLevelGenerator());
+      board.init(LevelSpec.forLevel(4));
+
+      for (int row = 0; row < board.getHeight(); row++) {
+        for (int col = 0; col < board.getWidth(); col++) {
+          Piece piece = board.get(new Posn(row, col));
+          if (piece != null && piece.getType() == PieceType.ENEMY) {
+            assertTrue(((Enemy) piece).movement() instanceof WanderStrategy);
+          }
+        }
+      }
     }
   }
 

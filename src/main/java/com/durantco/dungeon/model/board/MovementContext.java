@@ -1,6 +1,7 @@
 package com.durantco.dungeon.model.board;
 
 import com.durantco.dungeon.model.pieces.Enemy;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -36,6 +37,22 @@ public interface MovementContext {
    * @return the cell to step into, or empty if the goal cannot be reached
    */
   Optional<Posn> stepTowards(Enemy enemy, Posn goal);
+
+  /**
+   * The direction the hero last actually moved, as a one-cell offset. Zero before the hero has moved,
+   * or after a move that was refused.
+   *
+   * @return the hero's heading, for strategies that aim where it is going rather than where it is
+   */
+  Posn heroHeading();
+
+  /**
+   * The rooms of the current level, in the order the generator produced them. Empty for boards built
+   * from a fixed layout rather than generated.
+   *
+   * @return the level's rooms, for strategies that walk a beat between them
+   */
+  List<Room> rooms();
 
   /**
    * @return the randomness to use for any arbitrary choice, so behaviour stays reproducible

@@ -18,6 +18,8 @@ public class BoardImpl implements Board {
   private final LevelGenerator generator;
   private final AStarPathfinder pathfinder = new AStarPathfinder();
   private final MovementContext movementContext = new BoardMovementContext();
+  private Posn heroHeading = new Posn(0, 0);
+  private List<Room> rooms = List.of();
 
   /** The wall count the game shipped with, used when no generator is supplied. */
   private static final int DEFAULT_SCATTERED_WALLS = 2;
@@ -99,18 +101,19 @@ public class BoardImpl implements Board {
   public void setHardMode(boolean hardMode) {
     this.hardMode = hardMode;
     // Re-arm the enemies already on the board, so a difficulty change takes effect at once rather
-    // than only for the next level's spawns.
-    for (Enemy enemy : enemies) {
-      enemy.setMovement(strategyForSpawn());
+    // than only for the next level's spawns. Index order is the spawn order, so the mix is the same
+    // one this level would have been given had it started at this difficulty.
+    for (int i = 0; i < enemies.size(); i++) {
+      enemies.get(i).setMovement(difficulty().strategyFor(i, rng));
     }
   }
 
-  /** The behaviour a newly spawned enemy is given at the current difficulty. */
-  private MovementStrategy strategyForSpawn() {
+  /** The spawn mix implied by the current difficulty setting. */
+  private Difficulty difficulty() {
     if (hardMode) {
-      return new ChaseStrategy();
+      return Difficulty.HARD;
     }
-    return new WanderStrategy();
+    return Difficulty.EASY;
   }
 
   // Random width and height helper method to find empty spaces
@@ -162,6 +165,9 @@ public class BoardImpl implements Board {
 
   /** Clears the board, walls off the solid cells, and scatters the level's pieces over the floor. */
   private void populate(DungeonLayout layout, LevelSpec spec) {
+    this.rooms = layout.rooms();
+    this.heroHeading = new Posn(0, 0); // a fresh level has no history to aim at
+
     // Clear the board --> visit every index and set to null
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
@@ -187,7 +193,7 @@ public class BoardImpl implements Board {
     // set position for each enemy
     this.enemies = new ArrayList<>(); // clear the list
     for (int i = 0; i < spec.enemies(); i++) {
-      Enemy enemy = new Enemy(strategyForSpawn());
+      Enemy enemy = new Enemy(difficulty().strategyFor(i, rng));
       set(enemy, randomSpace());
       this.enemies.add(enemy);
     }
@@ -308,6 +314,16 @@ public class BoardImpl implements Board {
     }
 
     @Override
+    public Posn heroHeading() {
+      return heroHeading;
+    }
+
+    @Override
+    public List<Room> rooms() {
+      return rooms;
+    }
+
+    @Override
     public Random rng() {
       return rng;
     }
@@ -347,6 +363,7 @@ public class BoardImpl implements Board {
 
     board[currentHeroP.row()][currentHeroP.col()] = null; // Clears past hero position
     set(hero, target);
+    this.heroHeading = new Posn(drow, dcol); // only a move that happened counts as a heading
 
     if (heroMoveResult.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       return heroMoveResult; // Hero found the exit on the board no enemies should be deployed
