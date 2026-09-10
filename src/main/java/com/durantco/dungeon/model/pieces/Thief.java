@@ -4,7 +4,7 @@ package com.durantco.dungeon.model.pieces;
 public class Thief extends APiece {
 
   public Thief() {
-    super("Thief", "thief.png");
+    super(PieceType.THIEF);
   }
 
   public int getValue() {

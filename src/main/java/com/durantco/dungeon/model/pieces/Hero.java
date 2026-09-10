@@ -4,7 +4,7 @@ package com.durantco.dungeon.model.pieces;
 public class Hero extends APiece implements MovablePiece {
 
   public Hero() {
-    super("Hero", "hero.png");
+    super(PieceType.HERO);
   }
 
   @Override

@@ -16,13 +16,19 @@ import com.durantco.dungeon.model.board.Posn;
  * types are what grow.
  */
 public interface Piece {
+  /**
+   * @return the kind of this piece, for presentation purposes only
+   */
+  PieceType getType();
+
+  /**
+   * @return the human-readable name of this piece
+   */
   String getName();
 
   Posn getPosn();
 
   void setPosn(Posn posn);
-
-  String getResourcePath();
 
   /**
    * Resolves what happens when the hero moves onto this piece.

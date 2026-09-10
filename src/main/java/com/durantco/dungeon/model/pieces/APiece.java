@@ -2,25 +2,23 @@ package com.durantco.dungeon.model.pieces;
 
 import com.durantco.dungeon.model.board.Posn;
 
-/** Shared naming and position state for pieces. */
+/** Shared type and position state for pieces. */
 public abstract class APiece implements Piece {
-  private final String name;
-  private final String resourcePath;
+  private final PieceType type;
   private Posn position;
 
-  public APiece(String name, String resourcePath) {
-    this.name = name;
-    this.resourcePath = resourcePath;
+  public APiece(PieceType type) {
+    this.type = type;
   }
 
   @Override
-  public String getResourcePath() {
-    return resourcePath;
+  public PieceType getType() {
+    return type;
   }
 
   @Override
   public String getName() {
-    return this.name;
+    return type.displayName();
   }
 
   @Override
@@ -31,6 +29,11 @@ public abstract class APiece implements Piece {
   @Override
   public void setPosn(Posn posn) {
     this.position = posn;
+  }
+
+  @Override
+  public String toString() {
+    return getName() + "@" + position;
   }
 
   /*

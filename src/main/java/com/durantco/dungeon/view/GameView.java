@@ -37,12 +37,7 @@ public class GameView implements FXComponent {
         cell.setMinSize(50, 50);
         cell.getStyleClass().add("cell");
         if (piece != null) {
-          String path;
-          if (view.isDarkMode()) {
-            path = piece.getResourcePath();
-          } else {
-            path = piece.getName().toLowerCase() + "-light.png";
-          }
+          String path = PieceSprites.pathFor(piece.getType(), view.isDarkMode());
           ImageView img = new ImageView(new Image(path));
           img.setFitWidth(50);
           img.setFitHeight(50);

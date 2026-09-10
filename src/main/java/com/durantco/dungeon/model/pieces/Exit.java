@@ -4,7 +4,7 @@ package com.durantco.dungeon.model.pieces;
 public class Exit extends APiece {
 
   public Exit() {
-    super("Exit", "exit.png");
+    super(PieceType.EXIT);
   }
 
   /** Reaching the exit advances the hero to the next level. */
