@@ -109,13 +109,17 @@ public class BoardImpl implements Board {
 
   @Override
   public Piece get(Posn posn) {
-    return board[posn.getRow()][posn.getCol()];
+    return board[posn.row()][posn.col()];
   }
 
   @Override
   public void set(Piece p, Posn newPos) {
     p.setPosn(newPos);
-    board[newPos.getRow()][newPos.getCol()] = p;
+    board[newPos.row()][newPos.col()] = p;
+  }
+
+  private boolean inBounds(Posn p) {
+    return p.row() >= 0 && p.row() < height && p.col() >= 0 && p.col() < width;
   }
 
   @Override
@@ -125,22 +129,21 @@ public class BoardImpl implements Board {
     }
 
     Posn currentHeroP = hero.getPosn();
-    int newRow = currentHeroP.getRow() + drow;
-    int newCol = currentHeroP.getCol() + dcol;
+    Posn target = currentHeroP.offset(drow, dcol);
 
     // Illegal move conditional checks
-    if (newRow < 0 || newRow >= height || newCol < 0 || newCol >= width) {
+    if (!inBounds(target)) {
       return new CollisionResult(0, CollisionResult.Result.CONTINUE);
     }
 
-    Piece newPositon = board[newRow][newCol];
+    Piece newPositon = get(target);
     if (newPositon instanceof Wall) {
       return new CollisionResult(0, CollisionResult.Result.CONTINUE);
     }
 
     CollisionResult heroMoveResult = hero.collide(newPositon);
-    board[currentHeroP.getRow()][currentHeroP.getCol()] = null; // Clears past hero position
-    set(hero, new Posn(newRow, newCol));
+    board[currentHeroP.row()][currentHeroP.col()] = null; // Clears past hero position
+    set(hero, target);
 
     if (heroMoveResult.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       return heroMoveResult; // Hero found the exit on the board no enemies should be deployed
@@ -158,10 +161,10 @@ public class BoardImpl implements Board {
       int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
       if (hardMode) {
-        int heroRow = hero.getPosn().getRow();
-        int heroCol = hero.getPosn().getCol();
-        int eRow = enemy.getPosn().getRow();
-        int eCol = enemy.getPosn().getCol();
+        int heroRow = hero.getPosn().row();
+        int heroCol = hero.getPosn().col();
+        int eRow = enemy.getPosn().row();
+        int eCol = enemy.getPosn().col();
         int dRow = heroRow - eRow;
         int dCol = heroCol - eCol;
 
@@ -195,14 +198,13 @@ public class BoardImpl implements Board {
 
       // Try each direction until one works
       for (int[] dir : directions) {
-        int eRow = enemy.getPosn().getRow() + dir[0];
-        int eCol = enemy.getPosn().getCol() + dir[1];
+        Posn enemyTarget = enemy.getPosn().offset(dir[0], dir[1]);
 
         // Illegal move checks
-        if (eRow < 0 || eRow >= height || eCol < 0 || eCol >= width) {
+        if (!inBounds(enemyTarget)) {
           continue;
         }
-        Piece enemyNewPosition = board[eRow][eCol];
+        Piece enemyNewPosition = get(enemyTarget);
         if (enemyNewPosition instanceof Wall
             || enemyNewPosition instanceof Exit
             || enemyNewPosition instanceof Enemy) {
@@ -210,8 +212,8 @@ public class BoardImpl implements Board {
         }
 
         CollisionResult enemyMoveResult = enemy.collide(enemyNewPosition);
-        board[enemy.getPosn().getRow()][enemy.getPosn().getCol()] = null;
-        set(enemy, new Posn(eRow, eCol));
+        board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
+        set(enemy, enemyTarget);
 
         if (enemyMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
           finalResult = CollisionResult.Result.GAME_OVER;
