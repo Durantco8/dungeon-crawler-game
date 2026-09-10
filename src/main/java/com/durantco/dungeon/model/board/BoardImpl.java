@@ -55,10 +55,16 @@ public class BoardImpl implements Board {
     this.rng = rng;
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        if (board[i][j] instanceof Hero) {
-          this.hero = (Hero) board[i][j];
-        } else if (board[i][j] instanceof Enemy) {
-          this.enemies.add((Enemy) board[i][j]);
+        Piece piece = board[i][j];
+        if (piece == null) {
+          continue;
+        }
+        // Adopted pieces do not know where they are yet; the grid is the source of truth.
+        piece.setPosn(new Posn(i, j));
+        if (piece instanceof Hero) {
+          this.hero = (Hero) piece;
+        } else if (piece instanceof Enemy) {
+          this.enemies.add((Enemy) piece);
         }
       }
     }
