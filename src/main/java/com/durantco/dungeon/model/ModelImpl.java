@@ -136,46 +136,33 @@ public class ModelImpl implements Model {
 
   @Override
   public void moveUp() {
-    CollisionResult result = board.moveHero(-1, 0);
-    currentScore += result.getPoints();
-    if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
-      level++;
-      buildCurrentLevel();
-    } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
-      endGame();
-    }
-    notifyObservers();
+    move(-1, 0);
   }
 
   @Override
   public void moveDown() {
-    CollisionResult result = board.moveHero(1, 0);
-    currentScore += result.getPoints();
-    if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
-      level++;
-      buildCurrentLevel();
-    } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
-      endGame();
-    }
-    notifyObservers();
+    move(1, 0);
   }
 
   @Override
   public void moveLeft() {
-    CollisionResult result = board.moveHero(0, -1);
-    currentScore += result.getPoints();
-    if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
-      level++;
-      buildCurrentLevel();
-    } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
-      endGame();
-    }
-    notifyObservers();
+    move(0, -1);
   }
 
   @Override
   public void moveRight() {
-    CollisionResult result = board.moveHero(0, 1);
+    move(0, 1);
+  }
+
+  /**
+   * Applies one hero move and resolves whatever it caused: scoring, advancing a level, or ending the
+   * game. Observers are notified once, whether or not the move changed anything.
+   *
+   * @param drow rows to move, positive is downward
+   * @param dcol columns to move, positive is rightward
+   */
+  private void move(int drow, int dcol) {
+    CollisionResult result = board.moveHero(drow, dcol);
     currentScore += result.getPoints();
     if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       level++;
