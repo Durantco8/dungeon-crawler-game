@@ -4,6 +4,7 @@ import com.durantco.dungeon.model.pieces.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public class BoardImpl implements Board {
   private Piece[][] board;
@@ -17,6 +18,15 @@ public class BoardImpl implements Board {
 
   /** The wall count the game shipped with, used when no generator is supplied. */
   private static final int DEFAULT_SCATTERED_WALLS = 2;
+
+  /**
+   * How many layouts init will try before giving up. The partitioning generator is connected by
+   * construction so it should never need a second attempt; the budget exists for generators that make
+   * no such guarantee, such as the original random scatter.
+   */
+  private static final int MAX_GENERATION_ATTEMPTS = 10;
+
+  private int generationAttempts;
 
   /**
    * Creates an empty board with a caller-supplied source of randomness and level generator.
@@ -113,23 +123,34 @@ public class BoardImpl implements Board {
               + generator.guaranteedWalkableCells(width, height));
     }
 
+    // Generate, populate, verify, and try again if the level turned out unsolvable. For the
+    // partitioning generator the verification is an assertion that always holds; for a generator with
+    // no connectivity guarantee it is what stops an unwinnable level reaching the player.
+    for (int attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
+      DungeonLayout layout = generator.generate(width, height, rng);
+      if (layout.width() != width || layout.height() != height) {
+        throw new IllegalStateException("Generator returned a layout of the wrong size");
+      }
+      if (layout.walkableCount() < spec.cellsRequired()) {
+        continue; // not enough floor this time
+      }
+      populate(layout, spec);
+      if (isSolvable()) {
+        this.generationAttempts = attempt;
+        return;
+      }
+    }
+    throw new IllegalStateException(
+        "No solvable level found in " + MAX_GENERATION_ATTEMPTS + " attempts");
+  }
+
+  /** Clears the board, walls off the solid cells, and scatters the level's pieces over the floor. */
+  private void populate(DungeonLayout layout, LevelSpec spec) {
     // Clear the board --> visit every index and set to null
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
         board[i][j] = null;
       }
-    }
-
-    DungeonLayout layout = generator.generate(width, height, rng);
-    if (layout.width() != width || layout.height() != height) {
-      throw new IllegalStateException("Generator returned a layout of the wrong size");
-    }
-    if (layout.walkableCount() < spec.cellsRequired()) {
-      throw new IllegalStateException(
-          "Generator left only "
-              + layout.walkableCount()
-              + " walkable cells for a level needing "
-              + spec.cellsRequired());
     }
 
     // Solid cells become walls, so the rest of placement only has to avoid occupied cells.
@@ -162,6 +183,57 @@ public class BoardImpl implements Board {
     for (int i = 0; i < spec.thieves(); i++) {
       set(new Thief(), randomSpace());
     }
+  }
+
+  /**
+   * Whether the hero can actually finish this level: reach the exit, and collect every treasure.
+   *
+   * <p>Passability is asked of the pieces themselves rather than tested with instanceof. A cell blocks
+   * the hero exactly when entering it would be refused, which is the same rule movement uses, so the
+   * two can never disagree.
+   *
+   * @return true if the exit and every treasure lie in the hero's reachable region
+   */
+  public boolean isSolvable() {
+    if (hero == null) {
+      return false;
+    }
+    Set<Posn> reachable = Reachability.floodFrom(hero.getPosn(), this::heroCanEnter);
+    for (int row = 0; row < height; row++) {
+      for (int col = 0; col < width; col++) {
+        Posn at = new Posn(row, col);
+        Piece piece = board[row][col];
+        if (piece == null) {
+          continue;
+        }
+        boolean mustBeReachable =
+            piece.getType() == PieceType.EXIT || piece.getType() == PieceType.TREASURE;
+        if (mustBeReachable && !reachable.contains(at)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean heroCanEnter(Posn p) {
+    if (!inBounds(p)) {
+      return false;
+    }
+    Piece occupant = board[p.row()][p.col()];
+    if (occupant == null) {
+      return true;
+    }
+    return occupant.onHeroEnter(hero).getResults() != CollisionResult.Result.BLOCKED;
+  }
+
+  /**
+   * How many layouts the most recent init had to try. One means the first layout was accepted.
+   *
+   * @return the attempt count of the last successful init, or zero if init has not run
+   */
+  public int generationAttempts() {
+    return generationAttempts;
   }
 
   @Override
