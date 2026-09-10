@@ -7,6 +7,7 @@ import com.durantco.dungeon.model.pieces.CollisionResult;
 import com.durantco.dungeon.model.pieces.Piece;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class ModelImpl implements Model {
   private Board board;
@@ -17,15 +18,28 @@ public class ModelImpl implements Model {
   private List<Observer> observers;
   private boolean hardMode = false;
 
+  /** Creates a model over a fresh board with unseeded randomness, for production use. */
   public ModelImpl(int width, int height) {
-    this.board = new BoardImpl(width, height);
-    this.currentScore = 0;
-    this.highScore = 0;
-    this.level = 0;
-    this.status = STATUS.END_GAME;
-    this.observers = new ArrayList<>();
+    this(new BoardImpl(width, height));
   }
 
+  /**
+   * Creates a model over a fresh board with a caller-supplied source of randomness. Seed the
+   * randomness to make a whole game reproducible.
+   *
+   * @param width board width in cells
+   * @param height board height in cells
+   * @param rng the randomness handed to the board
+   */
+  public ModelImpl(int width, int height, Random rng) {
+    this(new BoardImpl(width, height, rng));
+  }
+
+  /**
+   * Creates a model over an existing board.
+   *
+   * @param board the board to drive
+   */
   public ModelImpl(Board board) {
     this.board = board;
     this.currentScore = 0;

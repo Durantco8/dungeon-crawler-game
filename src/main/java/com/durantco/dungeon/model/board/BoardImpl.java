@@ -12,19 +12,47 @@ public class BoardImpl implements Board {
   private int width;
   private int height;
   private boolean hardMode = false;
+  private final Random rng;
 
-  public BoardImpl(int width, int height) {
+  /**
+   * Creates an empty board with a caller-supplied source of randomness.
+   *
+   * @param width board width in cells
+   * @param height board height in cells
+   * @param rng the randomness used for piece placement and easy-mode enemy movement; seed it to make
+   *     a game reproducible
+   */
+  public BoardImpl(int width, int height, Random rng) {
     this.width = width;
     this.height = height;
     this.board = new Piece[height][width]; // [row] [col]
     this.enemies = new ArrayList<>();
+    this.rng = rng;
   }
 
+  /** Creates an empty board with an unseeded source of randomness, for production use. */
+  public BoardImpl(int width, int height) {
+    this(width, height, new Random());
+  }
+
+  /** Creates an unseeded board around an existing grid, for production use. */
   public BoardImpl(Piece[][] board) {
+    this(board, new Random());
+  }
+
+  /**
+   * Creates a board around an existing grid, scanning it for the hero and enemies. Useful for tests
+   * that need an exact starting layout rather than a generated one.
+   *
+   * @param board the grid to adopt; null entries are empty cells
+   * @param rng the randomness used for easy-mode enemy movement
+   */
+  public BoardImpl(Piece[][] board, Random rng) {
     this.width = board[0].length;
     this.height = board.length;
     this.board = board;
     this.enemies = new ArrayList<>();
+    this.rng = rng;
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
         if (board[i][j] instanceof Hero) {
@@ -43,12 +71,11 @@ public class BoardImpl implements Board {
 
   // Random width and height helper method to find empty spaces
   private Posn randomSpace() {
-    Random random = new Random();
-    int row = random.nextInt(height);
-    int col = random.nextInt(width);
+    int row = rng.nextInt(height);
+    int col = rng.nextInt(width);
     while (board[row][col] != null) {
-      row = random.nextInt(height);
-      col = random.nextInt(width);
+      row = rng.nextInt(height);
+      col = rng.nextInt(width);
     }
     return new Posn(row, col); // Returns once a empty position on the board is found
   }
@@ -156,7 +183,6 @@ public class BoardImpl implements Board {
     int totalPoints = heroMoveResult.getPoints();
     CollisionResult.Result finalResult = heroMoveResult.getResults();
 
-    Random random = new Random();
     for (Enemy enemy : enemies) {
       int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
@@ -189,7 +215,7 @@ public class BoardImpl implements Board {
         }
       } else {
         for (int i = directions.length - 1; i > 0; i--) {
-          int j = random.nextInt(i + 1);
+          int j = rng.nextInt(i + 1);
           int[] temp = directions[i];
           directions[i] = directions[j];
           directions[j] = temp;
