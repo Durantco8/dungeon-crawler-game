@@ -2,6 +2,7 @@ package com.durantco.dungeon.model.board;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.durantco.dungeon.model.pieces.Enemy;
@@ -185,7 +186,15 @@ class ArchetypeTest {
     @Test
     void easyModeOnlyDrifts() {
       for (int index = 0; index < 9; index++) {
-        assertTrue(Difficulty.EASY.strategyFor(index, new Random(1L)) instanceof WanderStrategy);
+        assertTrue(Difficulty.EASY.spawn(index, new Random(1L)).movement() instanceof WanderStrategy);
+      }
+    }
+
+    @Test
+    @DisplayName("easy mode gives every enemy the same unhurried pace")
+    void easyModeEnemiesAllMoveAtOneRate() {
+      for (int index = 0; index < 9; index++) {
+        assertEquals(ActionRate.NORMAL, Difficulty.EASY.spawn(index, new Random(1L)).meter().rate());
       }
     }
 
@@ -194,7 +203,7 @@ class ArchetypeTest {
     void hardModeGatesEveryHunterOnSight() {
       for (int index = 0; index < 6; index++) {
         assertTrue(
-            Difficulty.HARD.strategyFor(index, new Random(1L)) instanceof SightedStrategy,
+            Difficulty.HARD.spawn(index, new Random(1L)).movement() instanceof SightedStrategy,
             "Enemy " + index + " pursues without needing to see anything");
       }
     }
@@ -216,12 +225,12 @@ class ArchetypeTest {
       assertTrue(idlerAt(2) instanceof PatrolStrategy, "The third archetype walks a beat");
     }
 
-    private MovementStrategy hunterAt(int index) {
-      return ((SightedStrategy) Difficulty.HARD.strategyFor(index, new Random(1L))).whenSeen();
-    }
-
-    private MovementStrategy idlerAt(int index) {
-      return ((SightedStrategy) Difficulty.HARD.strategyFor(index, new Random(1L))).whenUnseen();
+    @Test
+    @DisplayName("the archetypes move at three different paces")
+    void hardModeMixesPaces() {
+      assertEquals(ActionRate.NORMAL, rateAt(0), "The plain chaser matches the hero");
+      assertEquals(ActionRate.FAST, rateAt(1), "An interceptor has to outpace the hero to get ahead");
+      assertEquals(ActionRate.SLOW, rateAt(2), "A patrolling guard should be outrunnable");
     }
 
     @Test
@@ -229,9 +238,34 @@ class ArchetypeTest {
     void theMixDoesNotDependOnRandomness() {
       for (int index = 0; index < 9; index++) {
         assertEquals(
-            Difficulty.HARD.strategyFor(index, new Random(1L)).getClass(),
-            Difficulty.HARD.strategyFor(index, new Random(9876L)).getClass());
+            Difficulty.HARD.spawn(index, new Random(1L)).movement().getClass(),
+            Difficulty.HARD.spawn(index, new Random(9876L)).movement().getClass());
+        assertEquals(
+            Difficulty.HARD.spawn(index, new Random(1L)).meter().rate(),
+            Difficulty.HARD.spawn(index, new Random(9876L)).meter().rate());
       }
+    }
+
+    @Test
+    @DisplayName("a freshly spawned enemy has no position yet; the board places it")
+    void spawnedEnemiesHaveNoPositionYet() {
+      assertNull(Difficulty.HARD.spawn(0, new Random(1L)).getPosn());
+    }
+
+    private MovementStrategy hunterAt(int index) {
+      return sightedAt(index).whenSeen();
+    }
+
+    private MovementStrategy idlerAt(int index) {
+      return sightedAt(index).whenUnseen();
+    }
+
+    private ActionRate rateAt(int index) {
+      return Difficulty.HARD.spawn(index, new Random(1L)).meter().rate();
+    }
+
+    private SightedStrategy sightedAt(int index) {
+      return (SightedStrategy) Difficulty.HARD.spawn(index, new Random(1L)).movement();
     }
   }
 }

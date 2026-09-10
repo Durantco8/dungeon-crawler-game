@@ -19,6 +19,7 @@ public class BoardImpl implements Board {
   private final AStarPathfinder pathfinder = new AStarPathfinder();
   private final MovementContext movementContext = new BoardMovementContext();
   private Posn heroHeading = new Posn(0, 0);
+  private boolean heroWasCaught;
   private List<Room> rooms = List.of();
 
   /** The wall count the game shipped with, used when no generator is supplied. */
@@ -104,7 +105,7 @@ public class BoardImpl implements Board {
     // than only for the next level's spawns. Index order is the spawn order, so the mix is the same
     // one this level would have been given had it started at this difficulty.
     for (int i = 0; i < enemies.size(); i++) {
-      enemies.get(i).setMovement(difficulty().strategyFor(i, rng));
+      enemies.get(i).setMovement(difficulty().spawn(i, rng).movement());
     }
   }
 
@@ -193,7 +194,7 @@ public class BoardImpl implements Board {
     // set position for each enemy
     this.enemies = new ArrayList<>(); // clear the list
     for (int i = 0; i < spec.enemies(); i++) {
-      Enemy enemy = new Enemy(difficulty().strategyFor(i, rng));
+      Enemy enemy = difficulty().spawn(i, rng);
       set(enemy, randomSpace());
       this.enemies.add(enemy);
     }
@@ -334,6 +335,33 @@ public class BoardImpl implements Board {
     }
   }
 
+  /**
+   * Moves one enemy once, if its strategy has somewhere to send it.
+   *
+   * @return false if the enemy had nowhere to go, so further actions this turn are pointless too
+   */
+  private boolean takeEnemyStep(Enemy enemy) {
+    Optional<Posn> step = enemy.movement().chooseStep(enemy, movementContext);
+    if (step.isEmpty()) {
+      return false;
+    }
+
+    Posn target = step.get();
+    CollisionResult outcome = enemy.collide(get(target));
+    if (outcome.getResults() == CollisionResult.Result.BLOCKED) {
+      // The step chooser only offers cells this enemy may enter, so this is belt and braces.
+      return false;
+    }
+    if (outcome.getResults() == CollisionResult.Result.GAME_OVER) {
+      this.heroWasCaught = true;
+      return true;
+    }
+
+    board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
+    set(enemy, target);
+    return true;
+  }
+
   /** Whether an enemy can see past a cell. Asked of the occupant, never switched on its type. */
   private boolean isTransparent(Posn p) {
     if (!inBounds(p)) {
@@ -352,6 +380,7 @@ public class BoardImpl implements Board {
 
   @Override
   public CollisionResult moveHero(int drow, int dcol) {
+    this.heroWasCaught = false;
     if (hero == null) {
       return CollisionResult.free();
     }
@@ -395,25 +424,20 @@ public class BoardImpl implements Board {
     int totalPoints = heroMoveResult.getPoints();
 
     for (Enemy enemy : enemies) {
-      Optional<Posn> step = enemy.movement().chooseStep(enemy, movementContext);
-      if (step.isEmpty()) {
-        continue; // nowhere to go this turn
+      // Each enemy banks energy for the turn and then acts as many times as it can afford. A slow
+      // enemy sits some turns out; a fast one occasionally gets a second step.
+      enemy.meter().grantTurn();
+      while (enemy.meter().canAct()) {
+        enemy.meter().spendAction();
+        if (!takeEnemyStep(enemy)) {
+          break; // nowhere to go, so no point spending the rest of this turn's energy looking
+        }
+        if (heroWasCaught) {
+          // End the turn here rather than stepping onto the hero's cell and erasing it, and give no
+          // remaining enemy a turn.
+          return new CollisionResult(totalPoints, CollisionResult.Result.GAME_OVER);
+        }
       }
-
-      Posn enemyTarget = step.get();
-      CollisionResult enemyMoveResult = enemy.collide(get(enemyTarget));
-      if (enemyMoveResult.getResults() == CollisionResult.Result.BLOCKED) {
-        continue; // the step chooser only offers cells this enemy may enter, so this is belt and braces
-      }
-
-      if (enemyMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
-        // This enemy has reached the hero. End the turn here rather than stepping onto the hero's
-        // cell and erasing it, and give no remaining enemy a turn.
-        return new CollisionResult(totalPoints, CollisionResult.Result.GAME_OVER);
-      }
-
-      board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
-      set(enemy, enemyTarget);
     }
     return CollisionResult.scoring(totalPoints);
   }

@@ -1,5 +1,7 @@
 package com.durantco.dungeon.model.pieces;
 
+import com.durantco.dungeon.model.board.ActionMeter;
+import com.durantco.dungeon.model.board.ActionRate;
 import com.durantco.dungeon.model.board.MovementStrategy;
 import com.durantco.dungeon.model.board.WanderStrategy;
 
@@ -12,18 +14,35 @@ import com.durantco.dungeon.model.board.WanderStrategy;
 public class Enemy extends APiece implements MovablePiece {
 
   private MovementStrategy movement;
+  private final ActionMeter meter;
 
-  /** An enemy that drifts at random. */
+  /** An enemy that drifts at random, acting once per turn. */
   public Enemy() {
-    this(new WanderStrategy());
+    this(new WanderStrategy(), ActionRate.NORMAL);
   }
 
   /**
    * @param movement how this enemy decides where to go
    */
   public Enemy(MovementStrategy movement) {
+    this(movement, ActionRate.NORMAL);
+  }
+
+  /**
+   * @param movement how this enemy decides where to go
+   * @param rate how often it gets to go
+   */
+  public Enemy(MovementStrategy movement, ActionRate rate) {
     super(PieceType.ENEMY);
     this.movement = movement;
+    this.meter = new ActionMeter(rate);
+  }
+
+  /**
+   * @return this enemy's energy meter, which decides how many actions it gets this turn
+   */
+  public ActionMeter meter() {
+    return meter;
   }
 
   /**

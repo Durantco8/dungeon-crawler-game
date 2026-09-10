@@ -1,5 +1,6 @@
 package com.durantco.dungeon.model.board;
 
+import com.durantco.dungeon.model.pieces.Enemy;
 import java.util.Random;
 
 /**
@@ -11,11 +12,11 @@ import java.util.Random;
  */
 public enum Difficulty {
 
-  /** Every enemy drifts at random. */
+  /** Every enemy drifts at random, all at the same unhurried pace. */
   EASY {
     @Override
-    public MovementStrategy strategyFor(int enemyIndex, Random rng) {
-      return new WanderStrategy();
+    public Enemy spawn(int enemyIndex, Random rng) {
+      return new Enemy(new WanderStrategy(), ActionRate.NORMAL);
     }
   },
 
@@ -26,25 +27,31 @@ public enum Difficulty {
    */
   HARD {
     @Override
-    public MovementStrategy strategyFor(int enemyIndex, Random rng) {
+    public Enemy spawn(int enemyIndex, Random rng) {
       switch (enemyIndex % 3) {
         case 0:
-          return new SightedStrategy(new ChaseStrategy(), new WanderStrategy());
+          // The workhorse: comes straight at you at your own speed.
+          return new Enemy(
+              new SightedStrategy(new ChaseStrategy(), new WanderStrategy()), ActionRate.NORMAL);
         case 1:
-          return new SightedStrategy(new AmbushStrategy(), new WanderStrategy());
+          // Getting ahead of the hero is only frightening if it can outpace it.
+          return new Enemy(
+              new SightedStrategy(new AmbushStrategy(), new WanderStrategy()), ActionRate.FAST);
         default:
-          return new SightedStrategy(new ChaseStrategy(), new PatrolStrategy());
+          // A heavy guard on a beat: dangerous to walk into, possible to outrun.
+          return new Enemy(
+              new SightedStrategy(new ChaseStrategy(), new PatrolStrategy()), ActionRate.SLOW);
       }
     }
   };
 
   /**
-   * The behaviour for one spawned enemy. Chosen by position in the spawn order rather than at random,
-   * so a level's mix is fixed by its seed.
+   * Builds one enemy, complete with its behaviour and its pace. Both are chosen by position in the
+   * spawn order rather than at random, so a level's mix is fixed by its seed.
    *
    * @param enemyIndex the enemy's position in the spawn order
    * @param rng randomness for strategies that need it
-   * @return the behaviour to give that enemy
+   * @return a newly built enemy, with no position yet
    */
-  public abstract MovementStrategy strategyFor(int enemyIndex, Random rng);
+  public abstract Enemy spawn(int enemyIndex, Random rng);
 }
