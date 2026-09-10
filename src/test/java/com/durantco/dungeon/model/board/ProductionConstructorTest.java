@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
  */
 class ProductionConstructorTest {
 
+  /** The wall count the default scatter generator uses when no generator is supplied. */
+  private static final int DEFAULT_WALLS = 2;
+
   @Test
   @DisplayName("the unseeded board constructor still builds a complete level")
   void unseededSizedBoardInitialisesALevel() {
@@ -32,7 +35,7 @@ class ProductionConstructorTest {
         }
       }
     }
-    assertEquals(spec.cellsRequired(), occupied);
+    assertEquals(spec.cellsRequired() + DEFAULT_WALLS, occupied);
   }
 
   @Test

@@ -3,26 +3,27 @@ package com.durantco.dungeon.model.board;
 /**
  * How many of each piece a level should contain.
  *
- * <p>Every level also contains exactly one hero and one exit, counted by {@link #cellsRequired()}
- * but not configurable.
+ * <p>Walls are deliberately absent. Wall layout is structure, decided by the {@link LevelGenerator},
+ * not a count the level asks for; a room-and-corridor dungeon has no meaningful "number of walls".
+ *
+ * <p>Every level also contains exactly one hero and one exit, counted by {@link #cellsRequired()} but
+ * not configurable.
  *
  * @param enemies number of enemies to place
  * @param treasures number of treasures to place
- * @param walls number of walls to place
  * @param thieves number of thieves to place
  */
-public record LevelSpec(int enemies, int treasures, int walls, int thieves) {
+public record LevelSpec(int enemies, int treasures, int thieves) {
 
   private static final int FIXED_PIECES = 2; // the hero and the exit
 
-  /** Treasures, walls and thieves are constant; difficulty scales with enemy count. */
+  /** Treasures and thieves are constant; difficulty scales with enemy count. */
   private static final int TREASURES_PER_LEVEL = 2;
 
-  private static final int WALLS_PER_LEVEL = 2;
   private static final int THIEVES_PER_LEVEL = 2;
 
   public LevelSpec {
-    if (enemies < 0 || treasures < 0 || walls < 0 || thieves < 0) {
+    if (enemies < 0 || treasures < 0 || thieves < 0) {
       throw new IllegalArgumentException("Piece counts cannot be negative");
     }
   }
@@ -34,13 +35,13 @@ public record LevelSpec(int enemies, int treasures, int walls, int thieves) {
    * @return the spec describing that level's contents
    */
   public static LevelSpec forLevel(int level) {
-    return new LevelSpec(level + 1, TREASURES_PER_LEVEL, WALLS_PER_LEVEL, THIEVES_PER_LEVEL);
+    return new LevelSpec(level + 1, TREASURES_PER_LEVEL, THIEVES_PER_LEVEL);
   }
 
   /**
-   * @return the total number of cells this level needs, including the hero and the exit
+   * @return the number of walkable cells this level needs, including the hero and the exit
    */
   public int cellsRequired() {
-    return enemies + treasures + walls + thieves + FIXED_PIECES;
+    return enemies + treasures + thieves + FIXED_PIECES;
   }
 }

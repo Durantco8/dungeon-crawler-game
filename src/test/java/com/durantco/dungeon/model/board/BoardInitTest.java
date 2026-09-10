@@ -20,6 +20,23 @@ class BoardInitTest {
 
   private static final long SEED = 20260910L;
 
+  /** A board whose generator scatters an exact, known number of walls. */
+  private static BoardImpl boardWith(int width, int height, int walls) {
+    return new BoardImpl(width, height, new Random(SEED), new RandomScatterGenerator(walls));
+  }
+
+  private static int occupiedCells(Board board) {
+    int occupied = 0;
+    for (int row = 0; row < board.getHeight(); row++) {
+      for (int col = 0; col < board.getWidth(); col++) {
+        if (board.get(new Posn(row, col)) != null) {
+          occupied++;
+        }
+      }
+    }
+    return occupied;
+  }
+
   private static Map<PieceType, Integer> census(Board board) {
     Map<PieceType, Integer> counts = new EnumMap<>(PieceType.class);
     for (PieceType type : PieceType.values()) {
@@ -54,20 +71,28 @@ class BoardInitTest {
 
   @Test
   void placesExactlyTheSpecifiedPieceCounts() {
-    BoardImpl board = new BoardImpl(8, 8, new Random(SEED));
-    board.init(new LevelSpec(3, 2, 4, 1));
+    BoardImpl board = boardWith(8, 8, 4);
+    board.init(new LevelSpec(3, 2, 1));
 
     Map<PieceType, Integer> counts = census(board);
     assertEquals(3, counts.get(PieceType.ENEMY));
     assertEquals(2, counts.get(PieceType.TREASURE));
-    assertEquals(4, counts.get(PieceType.WALL));
     assertEquals(1, counts.get(PieceType.THIEF));
+  }
+
+  @Test
+  @DisplayName("the generator decides the walls, not the level spec")
+  void placesTheWallsTheGeneratorAsksFor() {
+    BoardImpl board = boardWith(8, 8, 6);
+    board.init(new LevelSpec(3, 2, 1));
+
+    assertEquals(6, census(board).get(PieceType.WALL));
   }
 
   @Test
   @DisplayName("every level has exactly one hero and one exit")
   void placesOneHeroAndOneExit() {
-    BoardImpl board = new BoardImpl(8, 8, new Random(SEED));
+    BoardImpl board = boardWith(8, 8, 4);
     board.init(LevelSpec.forLevel(1));
 
     Map<PieceType, Integer> counts = census(board);
@@ -76,26 +101,18 @@ class BoardInitTest {
   }
 
   @Test
-  void occupiesExactlyAsManyCellsAsTheSpecRequires() {
-    LevelSpec spec = new LevelSpec(3, 2, 4, 1);
-    BoardImpl board = new BoardImpl(8, 8, new Random(SEED));
+  void occupiesExactlyAsManyCellsAsTheSpecAndTheWallsRequire() {
+    LevelSpec spec = new LevelSpec(3, 2, 1);
+    BoardImpl board = boardWith(8, 8, 4);
     board.init(spec);
 
-    int occupied = 0;
-    for (int row = 0; row < board.getHeight(); row++) {
-      for (int col = 0; col < board.getWidth(); col++) {
-        if (board.get(new Posn(row, col)) != null) {
-          occupied++;
-        }
-      }
-    }
-    assertEquals(spec.cellsRequired(), occupied);
+    assertEquals(spec.cellsRequired() + 4, occupiedCells(board));
   }
 
   @Test
   @DisplayName("no two pieces share a cell")
   void givesEveryPieceItsOwnCell() {
-    BoardImpl board = new BoardImpl(8, 8, new Random(SEED));
+    BoardImpl board = boardWith(8, 8, 4);
     board.init(LevelSpec.forLevel(3));
 
     Set<Posn> occupied = new HashSet<>();
@@ -111,7 +128,7 @@ class BoardInitTest {
 
   @Test
   void everyPieceKnowsTheCellItOccupies() {
-    BoardImpl board = new BoardImpl(8, 8, new Random(SEED));
+    BoardImpl board = boardWith(8, 8, 4);
     board.init(LevelSpec.forLevel(2));
 
     for (int row = 0; row < board.getHeight(); row++) {
@@ -128,9 +145,9 @@ class BoardInitTest {
   @Test
   @DisplayName("the same seed produces the same dungeon")
   void isReproducibleForAGivenSeed() {
-    BoardImpl first = new BoardImpl(8, 8, new Random(SEED));
+    BoardImpl first = boardWith(8, 8, 4);
     first.init(LevelSpec.forLevel(4));
-    BoardImpl second = new BoardImpl(8, 8, new Random(SEED));
+    BoardImpl second = boardWith(8, 8, 4);
     second.init(LevelSpec.forLevel(4));
 
     assertEquals(render(first), render(second));
@@ -138,9 +155,11 @@ class BoardInitTest {
 
   @Test
   void differentSeedsProduceDifferentDungeons() {
-    BoardImpl first = new BoardImpl(8, 8, new Random(1L));
+    BoardImpl first =
+        new BoardImpl(8, 8, new Random(1L), new RandomScatterGenerator(4));
     first.init(LevelSpec.forLevel(4));
-    BoardImpl second = new BoardImpl(8, 8, new Random(2L));
+    BoardImpl second =
+        new BoardImpl(8, 8, new Random(2L), new RandomScatterGenerator(4));
     second.init(LevelSpec.forLevel(4));
 
     assertNotEquals(render(first), render(second));
@@ -150,40 +169,40 @@ class BoardInitTest {
   @DisplayName("re-initialising clears the previous level rather than adding to it")
   void clearsTheBoardBetweenLevels() {
     LevelSpec spec = LevelSpec.forLevel(1);
-    BoardImpl board = new BoardImpl(8, 8, new Random(SEED));
+    BoardImpl board = boardWith(8, 8, 3);
     board.init(spec);
     board.init(spec);
 
-    int occupied = 0;
-    for (int row = 0; row < board.getHeight(); row++) {
-      for (int col = 0; col < board.getWidth(); col++) {
-        if (board.get(new Posn(row, col)) != null) {
-          occupied++;
-        }
-      }
-    }
-    assertEquals(spec.cellsRequired(), occupied);
+    assertEquals(spec.cellsRequired() + 3, occupiedCells(board));
   }
 
   @Test
   void reportsDimensions() {
-    BoardImpl board = new BoardImpl(5, 9, new Random(SEED));
+    BoardImpl board = boardWith(5, 9, 2);
     assertEquals(5, board.getWidth());
     assertEquals(9, board.getHeight());
   }
 
   @Test
   void canFitAcceptsALevelThatExactlyFillsTheBoard() {
-    BoardImpl board = new BoardImpl(3, 3, new Random(SEED));
-    LevelSpec exact = new LevelSpec(3, 2, 1, 1); // 7 pieces plus hero and exit is 9
+    BoardImpl board = boardWith(3, 3, 0);
+    LevelSpec exact = new LevelSpec(3, 2, 2); // 7 pieces plus hero and exit is 9
     assertEquals(9, exact.cellsRequired());
     assertTrue(board.canFit(exact));
   }
 
   @Test
+  @DisplayName("capacity is the walkable space, so walls reduce what fits")
+  void canFitAccountsForTheGeneratorsWalls() {
+    LevelSpec spec = new LevelSpec(3, 2, 2); // needs 9 walkable cells
+    assertTrue(boardWith(3, 3, 0).canFit(spec));
+    assertFalse(boardWith(3, 3, 1).canFit(spec), "One wall leaves only 8 walkable cells");
+  }
+
+  @Test
   void canFitRejectsALevelOneCellTooBig() {
-    BoardImpl board = new BoardImpl(3, 3, new Random(SEED));
-    LevelSpec tooBig = new LevelSpec(4, 2, 1, 1); // 10 cells needed, 9 available
+    BoardImpl board = boardWith(3, 3, 0);
+    LevelSpec tooBig = new LevelSpec(4, 2, 2); // 10 cells needed, 9 available
     assertEquals(10, tooBig.cellsRequired());
     assertFalse(board.canFit(tooBig));
   }
@@ -191,14 +210,14 @@ class BoardInitTest {
   @Test
   @DisplayName("init guards its precondition, which callers avoid by asking canFit first")
   void initRejectsALevelThatDoesNotFit() {
-    BoardImpl board = new BoardImpl(3, 3, new Random(SEED));
-    assertThrows(IllegalArgumentException.class, () -> board.init(new LevelSpec(4, 2, 1, 1)));
+    BoardImpl board = boardWith(3, 3, 0);
+    assertThrows(IllegalArgumentException.class, () -> board.init(new LevelSpec(4, 2, 2)));
   }
 
   @Test
   void fillsABoardToCapacityWithoutHanging() {
-    BoardImpl board = new BoardImpl(3, 3, new Random(SEED));
-    board.init(new LevelSpec(3, 2, 1, 1));
+    BoardImpl board = boardWith(3, 3, 0);
+    board.init(new LevelSpec(3, 2, 2));
     assertEquals(9, census(board).values().stream().mapToInt(Integer::intValue).sum());
   }
 }

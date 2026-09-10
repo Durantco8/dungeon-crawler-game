@@ -13,21 +13,32 @@ public class BoardImpl implements Board {
   private int height;
   private boolean hardMode = false;
   private final Random rng;
+  private final LevelGenerator generator;
+
+  /** The wall count the game shipped with, used when no generator is supplied. */
+  private static final int DEFAULT_SCATTERED_WALLS = 2;
 
   /**
-   * Creates an empty board with a caller-supplied source of randomness.
+   * Creates an empty board with a caller-supplied source of randomness and level generator.
    *
    * @param width board width in cells
    * @param height board height in cells
    * @param rng the randomness used for piece placement and easy-mode enemy movement; seed it to make
    *     a game reproducible
+   * @param generator the strategy that lays out each level's walls and floor
    */
-  public BoardImpl(int width, int height, Random rng) {
+  public BoardImpl(int width, int height, Random rng, LevelGenerator generator) {
     this.width = width;
     this.height = height;
     this.board = new Piece[height][width]; // [row] [col]
     this.enemies = new ArrayList<>();
     this.rng = rng;
+    this.generator = generator;
+  }
+
+  /** Creates an empty board that scatters walls at random, as the game originally did. */
+  public BoardImpl(int width, int height, Random rng) {
+    this(width, height, rng, new RandomScatterGenerator(DEFAULT_SCATTERED_WALLS));
   }
 
   /** Creates an empty board with an unseeded source of randomness, for production use. */
@@ -53,6 +64,7 @@ public class BoardImpl implements Board {
     this.board = board;
     this.enemies = new ArrayList<>();
     this.rng = rng;
+    this.generator = new RandomScatterGenerator(DEFAULT_SCATTERED_WALLS);
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
         Piece piece = board[i][j];
@@ -88,14 +100,17 @@ public class BoardImpl implements Board {
 
   @Override
   public boolean canFit(LevelSpec spec) {
-    return spec.cellsRequired() <= width * height;
+    return spec.cellsRequired() <= generator.guaranteedWalkableCells(width, height);
   }
 
   @Override
   public void init(LevelSpec spec) {
     if (!canFit(spec)) {
       throw new IllegalArgumentException(
-          "Level needs " + spec.cellsRequired() + " cells but the board has " + (width * height));
+          "Level needs "
+              + spec.cellsRequired()
+              + " walkable cells but this generator guarantees only "
+              + generator.guaranteedWalkableCells(width, height));
     }
 
     // Clear the board --> visit every index and set to null
@@ -104,6 +119,29 @@ public class BoardImpl implements Board {
         board[i][j] = null;
       }
     }
+
+    DungeonLayout layout = generator.generate(width, height, rng);
+    if (layout.width() != width || layout.height() != height) {
+      throw new IllegalStateException("Generator returned a layout of the wrong size");
+    }
+    if (layout.walkableCount() < spec.cellsRequired()) {
+      throw new IllegalStateException(
+          "Generator left only "
+              + layout.walkableCount()
+              + " walkable cells for a level needing "
+              + spec.cellsRequired());
+    }
+
+    // Solid cells become walls, so the rest of placement only has to avoid occupied cells.
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        Posn at = new Posn(i, j);
+        if (!layout.isWalkable(at)) {
+          set(new Wall(), at);
+        }
+      }
+    }
+
     // set a position for the hero
     this.hero = new Hero();
     set(hero, randomSpace());
@@ -119,10 +157,6 @@ public class BoardImpl implements Board {
     // set a position for each treasure
     for (int i = 0; i < spec.treasures(); i++) {
       set(new Treasure(), randomSpace());
-    }
-    // set a position for each wall
-    for (int i = 0; i < spec.walls(); i++) {
-      set(new Wall(), randomSpace());
     }
     // set a position for each thief
     for (int i = 0; i < spec.thieves(); i++) {
