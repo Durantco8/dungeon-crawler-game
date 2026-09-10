@@ -17,6 +17,13 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 
 public class GameView implements FXComponent {
+
+  /**
+   * Side of one board cell in pixels. Sized so a 28x18 dungeon fits the window without scrolling;
+   * the sprites are square, so this drives both the cell and the image.
+   */
+  private static final int CELL_SIZE = 28;
+
   private final Controller controller;
   private final Model model;
   private final View view;
@@ -34,13 +41,13 @@ public class GameView implements FXComponent {
       for (int col = 0; col < model.getWidth(); col++) {
         Piece piece = model.get(new Posn(row, col));
         Label cell = new Label();
-        cell.setMinSize(50, 50);
+        cell.setMinSize(CELL_SIZE, CELL_SIZE);
         cell.getStyleClass().add("cell");
         if (piece != null) {
           String path = PieceSprites.pathFor(piece.getType(), view.isDarkMode());
           ImageView img = new ImageView(new Image(path));
-          img.setFitWidth(50);
-          img.setFitHeight(50);
+          img.setFitWidth(CELL_SIZE);
+          img.setFitHeight(CELL_SIZE);
           cell.setGraphic(img);
         }
         grid.add(cell, col, row);
