@@ -39,6 +39,19 @@ public interface Piece {
   CollisionResult onHeroEnter(Hero hero);
 
   /**
+   * Whether this piece stops an enemy seeing past it.
+   *
+   * <p>Defaults to transparent, so a new kind of piece is something you can see over unless it says
+   * otherwise. That is the safe default: a piece wrongly treated as transparent makes enemies slightly
+   * more aware, whereas one wrongly treated as solid carves invisible blind spots into the level.
+   *
+   * @return true if this piece blocks line of sight
+   */
+  default boolean blocksSight() {
+    return false;
+  }
+
+  /**
    * Resolves what happens when an enemy moves onto this piece.
    *
    * @param enemy the enemy attempting to enter this cell

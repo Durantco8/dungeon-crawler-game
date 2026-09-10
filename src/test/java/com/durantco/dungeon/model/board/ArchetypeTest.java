@@ -190,12 +190,38 @@ class ArchetypeTest {
     }
 
     @Test
+    @DisplayName("every hard-mode enemy has to see the hero before it pursues")
+    void hardModeGatesEveryHunterOnSight() {
+      for (int index = 0; index < 6; index++) {
+        assertTrue(
+            Difficulty.HARD.strategyFor(index, new Random(1L)) instanceof SightedStrategy,
+            "Enemy " + index + " pursues without needing to see anything");
+      }
+    }
+
+    @Test
     @DisplayName("hard mode cycles through the three hunting archetypes")
     void hardModeMixesArchetypes() {
-      assertTrue(Difficulty.HARD.strategyFor(0, new Random(1L)) instanceof ChaseStrategy);
-      assertTrue(Difficulty.HARD.strategyFor(1, new Random(1L)) instanceof AmbushStrategy);
-      assertTrue(Difficulty.HARD.strategyFor(2, new Random(1L)) instanceof PatrolStrategy);
-      assertTrue(Difficulty.HARD.strategyFor(3, new Random(1L)) instanceof ChaseStrategy);
+      assertTrue(hunterAt(0) instanceof ChaseStrategy);
+      assertTrue(hunterAt(1) instanceof AmbushStrategy);
+      assertTrue(hunterAt(2) instanceof ChaseStrategy);
+      assertTrue(hunterAt(3) instanceof ChaseStrategy);
+    }
+
+    @Test
+    @DisplayName("what an enemy does once it loses the hero varies too")
+    void hardModeMixesWhatEnemiesDoWhenBlind() {
+      assertTrue(idlerAt(0) instanceof WanderStrategy);
+      assertTrue(idlerAt(1) instanceof WanderStrategy);
+      assertTrue(idlerAt(2) instanceof PatrolStrategy, "The third archetype walks a beat");
+    }
+
+    private MovementStrategy hunterAt(int index) {
+      return ((SightedStrategy) Difficulty.HARD.strategyFor(index, new Random(1L))).whenSeen();
+    }
+
+    private MovementStrategy idlerAt(int index) {
+      return ((SightedStrategy) Difficulty.HARD.strategyFor(index, new Random(1L))).whenUnseen();
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.durantco.dungeon.support;
 
 import com.durantco.dungeon.model.board.AStarPathfinder;
 import com.durantco.dungeon.model.board.DungeonLayout;
+import com.durantco.dungeon.model.board.LineOfSight;
 import com.durantco.dungeon.model.board.MovementContext;
 import com.durantco.dungeon.model.board.Posn;
 import com.durantco.dungeon.model.board.Room;
@@ -77,6 +78,11 @@ public final class StubMovementContext implements MovementContext {
   public StubMovementContext withRooms(Room... rooms) {
     this.rooms = List.of(rooms);
     return this;
+  }
+
+  @Override
+  public boolean hasLineOfSight(Posn from, Posn to) {
+    return LineOfSight.isClear(from, to, layout::isWalkable);
   }
 
   @Override

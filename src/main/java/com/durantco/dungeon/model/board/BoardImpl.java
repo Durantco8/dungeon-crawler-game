@@ -324,9 +324,26 @@ public class BoardImpl implements Board {
     }
 
     @Override
+    public boolean hasLineOfSight(Posn from, Posn to) {
+      return LineOfSight.isClear(from, to, BoardImpl.this::isTransparent);
+    }
+
+    @Override
     public Random rng() {
       return rng;
     }
+  }
+
+  /** Whether an enemy can see past a cell. Asked of the occupant, never switched on its type. */
+  private boolean isTransparent(Posn p) {
+    if (!inBounds(p)) {
+      return false;
+    }
+    Piece occupant = board[p.row()][p.col()];
+    if (occupant == null) {
+      return true;
+    }
+    return !occupant.blocksSight();
   }
 
   private boolean inBounds(Posn p) {

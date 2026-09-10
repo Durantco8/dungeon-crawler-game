@@ -20,19 +20,20 @@ public enum Difficulty {
   },
 
   /**
-   * A mix of hunters. Chasers come straight for the hero, ambushers try to get ahead of it, and
-   * patrollers make parts of the dungeon dangerous regardless of where the hero is.
+   * A mix of hunters, each of which has to actually see the hero before it pursues: one that comes
+   * straight at you and drifts once you break away, one that tries to cut you off, and one walking a
+   * beat that gives chase on sight.
    */
   HARD {
     @Override
     public MovementStrategy strategyFor(int enemyIndex, Random rng) {
       switch (enemyIndex % 3) {
         case 0:
-          return new ChaseStrategy();
+          return new SightedStrategy(new ChaseStrategy(), new WanderStrategy());
         case 1:
-          return new AmbushStrategy();
+          return new SightedStrategy(new AmbushStrategy(), new WanderStrategy());
         default:
-          return new PatrolStrategy();
+          return new SightedStrategy(new ChaseStrategy(), new PatrolStrategy());
       }
     }
   };

@@ -56,6 +56,18 @@ class EnemyMovementTest {
     return out.toString();
   }
 
+  /** Arms every enemy on the board with an ungated chaser, for tests about routing rather than sight. */
+  private static void armChasers(Board board) {
+    for (int row = 0; row < board.getHeight(); row++) {
+      for (int col = 0; col < board.getWidth(); col++) {
+        Piece piece = board.get(new Posn(row, col));
+        if (piece != null && piece.getType() == PieceType.ENEMY) {
+          ((Enemy) piece).setMovement(new ChaseStrategy());
+        }
+      }
+    }
+  }
+
   @Nested
   class HardMode {
 
@@ -63,7 +75,7 @@ class EnemyMovementTest {
     @DisplayName("closes the row gap when the hero is further away vertically")
     void chasesAlongRowsWhenRowsDominate() {
       BoardImpl board = boardOf(1L, ".H.", "...", ".E.");
-      board.setHardMode(true);
+      armChasers(board);
       board.moveHero(0, 1);
 
       assertEquals(new Posn(1, 1), firstEnemy(board));
@@ -73,7 +85,7 @@ class EnemyMovementTest {
     @DisplayName("closes the column gap when the hero is further away horizontally")
     void chasesAlongColumnsWhenColumnsDominate() {
       BoardImpl board = boardOf(1L, "H...", "...E");
-      board.setHardMode(true);
+      armChasers(board);
       board.moveHero(1, 0);
 
       assertEquals(new Posn(1, 2), firstEnemy(board));
@@ -82,7 +94,7 @@ class EnemyMovementTest {
     @Test
     void movesOnlyOneCellPerHeroMove() {
       BoardImpl board = boardOf(1L, ".H..", "....", "....", ".E..");
-      board.setHardMode(true);
+      armChasers(board);
       Posn before = firstEnemy(board);
       board.moveHero(0, 1);
       Posn after = firstEnemy(board);
@@ -95,11 +107,11 @@ class EnemyMovementTest {
     @DisplayName("the chase consults no randomness, so the seed cannot change it")
     void isIndependentOfTheSeed() {
       BoardImpl first = boardOf(1L, ".H..", "....", ".E..");
-      first.setHardMode(true);
+      armChasers(first);
       first.moveHero(0, 1);
 
       BoardImpl second = boardOf(999_999L, ".H..", "....", ".E..");
-      second.setHardMode(true);
+      armChasers(second);
       second.moveHero(0, 1);
 
       assertEquals(render(first), render(second));
@@ -112,7 +124,7 @@ class EnemyMovementTest {
       // far left. The old greedy chase stepped along whichever axis was further, so it would have
       // moved right into the dead end and stayed there. A shortest path goes up instead.
       BoardImpl board = boardOf(1L, "....H", ".WWWW", "E....");
-      board.setHardMode(true);
+      armChasers(board);
       board.moveHero(0, -1); // hero retreats to (0, 3), still on the far side of the wall
 
       assertEquals(new Posn(1, 0), firstEnemy(board), "The enemy should take the only real route");
@@ -125,7 +137,7 @@ class EnemyMovementTest {
       // an equally mobile hero it should close that gap and catch it, which the greedy chase could not
       // do from here because its first choice led into the dead-end corridor.
       BoardImpl board = boardOf(1L, "....H", ".WWWW", "E....");
-      board.setHardMode(true);
+      armChasers(board);
 
       CollisionResult.Result outcome = CollisionResult.Result.CONTINUE;
       for (int turn = 0; turn < 6 && outcome == CollisionResult.Result.CONTINUE; turn++) {
@@ -140,7 +152,7 @@ class EnemyMovementTest {
     @DisplayName("a walled-off preferred direction falls back rather than standing still")
     void takesAnAlternativeWhenThePreferredDirectionIsBlocked() {
       BoardImpl board = boardOf(1L, "H...", ".W..", ".E..");
-      board.setHardMode(true);
+      armChasers(board);
       board.moveHero(0, 1);
 
       // The wall sits on the enemy's preferred upward step, so it must pick another direction.
@@ -156,14 +168,15 @@ class EnemyMovementTest {
     @DisplayName("turning on hard mode re-arms the enemies already on the board")
     void changingDifficultyReArmsExistingEnemies() {
       BoardImpl board = boardOf(1L, "H...", "....", "..E.");
-      Piece enemy = board.get(new Posn(2, 2));
-      assertTrue(((Enemy) enemy).movement() instanceof WanderStrategy);
+      Enemy enemy = (Enemy) board.get(new Posn(2, 2));
+      assertTrue(enemy.movement() instanceof WanderStrategy);
 
       board.setHardMode(true);
-      assertTrue(((Enemy) enemy).movement() instanceof ChaseStrategy);
+      assertTrue(enemy.movement() instanceof SightedStrategy, "Hard mode enemies hunt by sight");
+      assertTrue(((SightedStrategy) enemy.movement()).whenSeen() instanceof ChaseStrategy);
 
       board.setHardMode(false);
-      assertTrue(((Enemy) enemy).movement() instanceof WanderStrategy);
+      assertTrue(enemy.movement() instanceof WanderStrategy);
     }
 
     @Test
@@ -173,17 +186,20 @@ class EnemyMovementTest {
       board.setHardMode(true);
       board.init(LevelSpec.forLevel(2)); // three enemies, one of each archetype
 
-      Set<Class<?>> archetypes = new HashSet<>();
+      Set<Class<?>> hunters = new HashSet<>();
+      Set<Class<?>> idlers = new HashSet<>();
       for (int row = 0; row < board.getHeight(); row++) {
         for (int col = 0; col < board.getWidth(); col++) {
           Piece piece = board.get(new Posn(row, col));
           if (piece != null && piece.getType() == PieceType.ENEMY) {
-            archetypes.add(((Enemy) piece).movement().getClass());
+            SightedStrategy sighted = (SightedStrategy) ((Enemy) piece).movement();
+            hunters.add(sighted.whenSeen().getClass());
+            idlers.add(sighted.whenUnseen().getClass());
           }
         }
       }
-      assertEquals(
-          Set.of(ChaseStrategy.class, AmbushStrategy.class, PatrolStrategy.class), archetypes);
+      assertEquals(Set.of(ChaseStrategy.class, AmbushStrategy.class), hunters);
+      assertEquals(Set.of(WanderStrategy.class, PatrolStrategy.class), idlers);
     }
 
     @Test

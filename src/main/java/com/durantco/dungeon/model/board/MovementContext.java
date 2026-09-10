@@ -55,6 +55,16 @@ public interface MovementContext {
   List<Room> rooms();
 
   /**
+   * Whether the view between two cells is unobstructed. Walls block sight; pieces standing in the way
+   * do not.
+   *
+   * @param from where the looking happens
+   * @param to what is being looked at
+   * @return true if nothing between the two blocks the view
+   */
+  boolean hasLineOfSight(Posn from, Posn to);
+
+  /**
    * @return the randomness to use for any arbitrary choice, so behaviour stays reproducible
    */
   Random rng();
