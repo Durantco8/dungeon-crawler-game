@@ -3,6 +3,7 @@ package com.durantco.dungeon.model.board;
 import com.durantco.dungeon.model.pieces.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -15,6 +16,7 @@ public class BoardImpl implements Board {
   private boolean hardMode = false;
   private final Random rng;
   private final LevelGenerator generator;
+  private final AStarPathfinder pathfinder = new AStarPathfinder();
 
   /** The wall count the game shipped with, used when no generator is supplied. */
   private static final int DEFAULT_SCATTERED_WALLS = 2;
@@ -257,6 +259,57 @@ public class BoardImpl implements Board {
     board[newPos.row()][newPos.col()] = p;
   }
 
+  /**
+   * Where one enemy should step this turn.
+   *
+   * <p>In hard mode the enemy follows a shortest path to the hero, so it rounds corners and walks
+   * around walls instead of pressing against them. In easy mode it wanders, trying the four directions
+   * in a shuffled order.
+   *
+   * @return the cell to step into, or empty if the enemy has nowhere to go
+   */
+  private Optional<Posn> chooseEnemyStep(Enemy enemy) {
+    if (hardMode) {
+      return pathfinder.nextStep(
+          enemy.getPosn(), hero.getPosn(), target -> enemyCanEnter(enemy, target));
+    }
+    return wanderStep(enemy);
+  }
+
+  /** Picks the first of the four directions, shuffled, that this enemy is allowed to enter. */
+  private Optional<Posn> wanderStep(Enemy enemy) {
+    int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    for (int i = directions.length - 1; i > 0; i--) {
+      int j = rng.nextInt(i + 1);
+      int[] swap = directions[i];
+      directions[i] = directions[j];
+      directions[j] = swap;
+    }
+    for (int[] direction : directions) {
+      Posn target = enemy.getPosn().offset(direction[0], direction[1]);
+      if (enemyCanEnter(enemy, target)) {
+        return Optional.of(target);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Whether an enemy may enter a cell. Asked of the occupant rather than tested with instanceof, so
+   * pathfinding and movement can never disagree. The hero's cell counts as enterable: reaching it is
+   * the point, and it ends the game rather than being refused.
+   */
+  private boolean enemyCanEnter(Enemy enemy, Posn p) {
+    if (!inBounds(p)) {
+      return false;
+    }
+    Piece occupant = board[p.row()][p.col()];
+    if (occupant == null) {
+      return true;
+    }
+    return occupant.onEnemyEnter(enemy).getResults() != CollisionResult.Result.BLOCKED;
+  }
+
   private boolean inBounds(Posn p) {
     return p.row() >= 0 && p.row() < height && p.col() >= 0 && p.col() < width;
   }
@@ -305,67 +358,25 @@ public class BoardImpl implements Board {
     int totalPoints = heroMoveResult.getPoints();
 
     for (Enemy enemy : enemies) {
-      int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-
-      if (hardMode) {
-        int heroRow = hero.getPosn().row();
-        int heroCol = hero.getPosn().col();
-        int eRow = enemy.getPosn().row();
-        int eCol = enemy.getPosn().col();
-        int dRow = heroRow - eRow;
-        int dCol = heroCol - eCol;
-
-        int colDir;
-        if (dCol > 0) {
-          colDir = 1;
-        } else {
-          colDir = -1;
-        }
-
-        int rowDir;
-        if (dRow > 0) {
-          rowDir = 1;
-        } else {
-          rowDir = -1;
-        }
-
-        if (Math.abs(dRow) >= Math.abs(dCol)) {
-          directions = new int[][] {{rowDir, 0}, {0, colDir}, {-rowDir, 0}, {0, -colDir}};
-        } else {
-          directions = new int[][] {{0, colDir}, {rowDir, 0}, {0, -colDir}, {-rowDir, 0}};
-        }
-      } else {
-        for (int i = directions.length - 1; i > 0; i--) {
-          int j = rng.nextInt(i + 1);
-          int[] temp = directions[i];
-          directions[i] = directions[j];
-          directions[j] = temp;
-        }
+      Optional<Posn> step = chooseEnemyStep(enemy);
+      if (step.isEmpty()) {
+        continue; // nowhere to go this turn
       }
 
-      // Try each direction until one works
-      for (int[] dir : directions) {
-        Posn enemyTarget = enemy.getPosn().offset(dir[0], dir[1]);
-
-        // Illegal move checks
-        if (!inBounds(enemyTarget)) {
-          continue;
-        }
-        CollisionResult enemyMoveResult = enemy.collide(get(enemyTarget));
-        if (enemyMoveResult.getResults() == CollisionResult.Result.BLOCKED) {
-          continue; // Walls, the exit and other enemies all refuse an enemy; try another direction.
-        }
-
-        if (enemyMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
-          // This enemy has reached the hero. End the turn here rather than stepping onto the hero's
-          // cell and erasing it, and give no remaining enemy a turn.
-          return new CollisionResult(totalPoints, CollisionResult.Result.GAME_OVER);
-        }
-
-        board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
-        set(enemy, enemyTarget);
-        break;
+      Posn enemyTarget = step.get();
+      CollisionResult enemyMoveResult = enemy.collide(get(enemyTarget));
+      if (enemyMoveResult.getResults() == CollisionResult.Result.BLOCKED) {
+        continue; // the step chooser only offers cells this enemy may enter, so this is belt and braces
       }
+
+      if (enemyMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
+        // This enemy has reached the hero. End the turn here rather than stepping onto the hero's
+        // cell and erasing it, and give no remaining enemy a turn.
+        return new CollisionResult(totalPoints, CollisionResult.Result.GAME_OVER);
+      }
+
+      board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
+      set(enemy, enemyTarget);
     }
     return CollisionResult.scoring(totalPoints);
   }

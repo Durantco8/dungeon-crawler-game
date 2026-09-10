@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.durantco.dungeon.model.pieces.CollisionResult;
 import com.durantco.dungeon.model.pieces.Piece;
 import com.durantco.dungeon.model.pieces.PieceType;
 import com.durantco.dungeon.support.Boards;
@@ -15,8 +16,9 @@ import org.junit.jupiter.api.Test;
 /**
  * Enemy movement in both difficulty modes.
  *
- * <p>Hard mode is a greedy chase along whichever axis is further from the hero. Easy mode shuffles
- * the four directions, so it is only assertable because the randomness is now injected.
+ * <p>Hard mode follows a shortest path to the hero, so it rounds corners instead of pressing against
+ * walls. Easy mode shuffles the four directions, so it is only assertable because the randomness is
+ * now injected.
  */
 class EnemyMovementTest {
 
@@ -98,6 +100,37 @@ class EnemyMovementTest {
       second.moveHero(0, 1);
 
       assertEquals(render(first), render(second));
+    }
+
+    @Test
+    @DisplayName("walks away from the hero when that is the only route to it")
+    void roundsACornerTheGreedyChaseWouldHaveMissed() {
+      // The hero is to the enemy's right, but the wall means the only way through is upward on the
+      // far left. The old greedy chase stepped along whichever axis was further, so it would have
+      // moved right into the dead end and stayed there. A shortest path goes up instead.
+      BoardImpl board = boardOf(1L, "....H", ".WWWW", "E....");
+      board.setHardMode(true);
+      board.moveHero(0, -1); // hero retreats to (0, 3), still on the far side of the wall
+
+      assertEquals(new Posn(1, 0), firstEnemy(board), "The enemy should take the only real route");
+    }
+
+    @Test
+    @DisplayName("follows its route all the way to the hero")
+    void eventuallyCatchesTheHeroByFollowingItsRoute() {
+      // The enemy starts on the far side of the wall with a six-step route to the hero. Left to chase
+      // an equally mobile hero it should close that gap and catch it, which the greedy chase could not
+      // do from here because its first choice led into the dead-end corridor.
+      BoardImpl board = boardOf(1L, "....H", ".WWWW", "E....");
+      board.setHardMode(true);
+
+      CollisionResult.Result outcome = CollisionResult.Result.CONTINUE;
+      for (int turn = 0; turn < 6 && outcome == CollisionResult.Result.CONTINUE; turn++) {
+        outcome = board.moveHero(0, -1).getResults();
+      }
+
+      assertEquals(
+          CollisionResult.Result.GAME_OVER, outcome, "The enemy never completed its route");
     }
 
     @Test
