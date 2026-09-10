@@ -1,0 +1,70 @@
+.title {
+      -fx-text-fill: black;
+      -fx-font-size: 75;
+      -fx-font-weight: bold;
+  }
+
+  .highScore {
+      -fx-font-size: 35;
+      -fx-font-weight: normal;
+      -fx-text-fill: red;
+  }
+
+  .lastScore {
+      -fx-font-size: 35;
+      -fx-font-weight: normal;
+      -fx-text-fill: green;
+  }
+
+  .author-Line {
+      -fx-font-size: 25;
+      -fx-font-weight: bold;
+      -fx-text-fill: black;
+  }
+
+  .title-Page {
+      -fx-background-color: white;
+  }
+
+  .start-button {
+      -fx-font-size: 15;
+      -fx-padding: 5 25;
+  }
+
+  .dark-mode {
+    -fx-font-size: 15;
+    -fx-padding: 5 25;
+  }
+
+  .game-Page {
+      -fx-background-color: lightgray;
+  }
+
+  .game-score {
+      -fx-text-fill: green;
+      -fx-font-size: 30;
+      -fx-font-weight: bold;
+  }
+
+  .cell {
+      -fx-background-color: silver;
+      -fx-border-color: gray;
+      -fx-border-width: 0;
+      -fx-alignment: center;
+      -fx-text-fill: black;
+      -fx-font-size: 15;
+      -fx-font-weight: bold;
+  }
+
+  .dpad-button {
+      -fx-font-size: 15;
+      -fx-padding: 10 20;
+      -fx-background-color: white;
+      -fx-text-fill: black;
+      -fx-font-weight: bold;
+  }
+
+  .thief-label {
+    -fx-fill: black;
+    -fx-font-size: 15;
+    }
