@@ -176,6 +176,13 @@ public class BoardImpl implements Board {
       return CollisionResult.free();
     }
 
+    if (heroMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
+      // The hero has walked into an enemy. Stop resolving the turn instead of completing the move:
+      // writing the hero into the enemy's cell would erase the enemy from the grid, leaving a board
+      // that no longer describes a real game state.
+      return heroMoveResult;
+    }
+
     board[currentHeroP.row()][currentHeroP.col()] = null; // Clears past hero position
     set(hero, target);
 
@@ -187,8 +194,9 @@ public class BoardImpl implements Board {
     ENEMY MOVEMENT
      */
 
+    // Past this point the hero's move was uneventful: the refused, fatal and level-completing
+    // outcomes have all returned already. Only the hero scores, so the turn's points are fixed here.
     int totalPoints = heroMoveResult.getPoints();
-    CollisionResult.Result finalResult = heroMoveResult.getResults();
 
     for (Enemy enemy : enemies) {
       int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
@@ -242,15 +250,17 @@ public class BoardImpl implements Board {
           continue; // Walls, the exit and other enemies all refuse an enemy; try another direction.
         }
 
+        if (enemyMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
+          // This enemy has reached the hero. End the turn here rather than stepping onto the hero's
+          // cell and erasing it, and give no remaining enemy a turn.
+          return new CollisionResult(totalPoints, CollisionResult.Result.GAME_OVER);
+        }
+
         board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
         set(enemy, enemyTarget);
-
-        if (enemyMoveResult.getResults() == CollisionResult.Result.GAME_OVER) {
-          finalResult = CollisionResult.Result.GAME_OVER;
-        }
         break;
       }
     }
-    return new CollisionResult(totalPoints, finalResult);
+    return CollisionResult.scoring(totalPoints);
   }
 }
