@@ -1,31 +1,29 @@
 package com.durantco.dungeon.model.pieces;
 
+/** A hostile piece that hunts the hero. */
 public class Enemy extends APiece implements MovablePiece {
 
   public Enemy() {
     super("Enemy", "enemy.png");
   }
 
+  @Override
   public CollisionResult collide(Piece other) {
-    /*
-    if null --> continue the game unaffected
-    if Treasure --> it will be reset to zero
-    if hero --> the game will end
-     */
-
     if (other == null) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
-    } else if (other instanceof Treasure) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
-    } else if (other instanceof Hero) {
-      return new CollisionResult(0, CollisionResult.Result.GAME_OVER);
-    } else if (other instanceof Thief) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
-    } else if (other instanceof Wall) {
-      throw new IllegalArgumentException();
-    } else if (other instanceof Exit) {
-      throw new IllegalArgumentException();
+      return CollisionResult.free();
     }
-    throw new IllegalArgumentException();
+    return other.onEnemyEnter(this);
+  }
+
+  /** The hero walking into an enemy ends the game. */
+  @Override
+  public CollisionResult onHeroEnter(Hero hero) {
+    return CollisionResult.gameOver();
+  }
+
+  /** Enemies do not stack. */
+  @Override
+  public CollisionResult onEnemyEnter(Enemy enemy) {
+    return CollisionResult.blocked();
   }
 }

@@ -1,31 +1,29 @@
 package com.durantco.dungeon.model.pieces;
 
+/** The player's character. */
 public class Hero extends APiece implements MovablePiece {
+
   public Hero() {
     super("Hero", "hero.png");
   }
 
+  @Override
   public CollisionResult collide(Piece other) {
-    /*
-    if NUll --> continue the game as normal
-    if treasure --> treat other as treasure and get the points associated
-    if Enemy --> the game will end
-    if Exit --> then the game will send off to the next level
-     */
-
     if (other == null) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
-    } else if (other instanceof Treasure) {
-      return new CollisionResult(((Treasure) other).getValue(), CollisionResult.Result.CONTINUE);
-    } else if (other instanceof Enemy) {
-      return new CollisionResult(0, CollisionResult.Result.GAME_OVER);
-    } else if (other instanceof Exit) {
-      return new CollisionResult(0, CollisionResult.Result.NEXT_LEVEL);
-    } else if (other instanceof Thief) {
-      return new CollisionResult(((Thief) other).getValue(), CollisionResult.Result.CONTINUE);
-    } else if (other instanceof Wall) {
-      throw new IllegalArgumentException();
+      return CollisionResult.free();
     }
-    throw new IllegalArgumentException();
+    return other.onHeroEnter(this);
+  }
+
+  /** There is only ever one hero, so this cannot happen; refuse the move rather than throw. */
+  @Override
+  public CollisionResult onHeroEnter(Hero hero) {
+    return CollisionResult.blocked();
+  }
+
+  /** An enemy reaching the hero ends the game. */
+  @Override
+  public CollisionResult onEnemyEnter(Enemy enemy) {
+    return CollisionResult.gameOver();
   }
 }

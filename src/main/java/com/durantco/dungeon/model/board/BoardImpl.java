@@ -152,7 +152,7 @@ public class BoardImpl implements Board {
   @Override
   public CollisionResult moveHero(int drow, int dcol) {
     if (hero == null) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
+      return CollisionResult.free();
     }
 
     Posn currentHeroP = hero.getPosn();
@@ -160,15 +160,16 @@ public class BoardImpl implements Board {
 
     // Illegal move conditional checks
     if (!inBounds(target)) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
+      return CollisionResult.free();
     }
 
-    Piece newPositon = get(target);
-    if (newPositon instanceof Wall) {
-      return new CollisionResult(0, CollisionResult.Result.CONTINUE);
+    CollisionResult heroMoveResult = hero.collide(get(target));
+    if (heroMoveResult.getResults() == CollisionResult.Result.BLOCKED) {
+      // The destination refused the hero. The turn is spent without the enemies acting, which is
+      // the behaviour walls have always had.
+      return CollisionResult.free();
     }
 
-    CollisionResult heroMoveResult = hero.collide(newPositon);
     board[currentHeroP.row()][currentHeroP.col()] = null; // Clears past hero position
     set(hero, target);
 
@@ -230,14 +231,11 @@ public class BoardImpl implements Board {
         if (!inBounds(enemyTarget)) {
           continue;
         }
-        Piece enemyNewPosition = get(enemyTarget);
-        if (enemyNewPosition instanceof Wall
-            || enemyNewPosition instanceof Exit
-            || enemyNewPosition instanceof Enemy) {
-          continue;
+        CollisionResult enemyMoveResult = enemy.collide(get(enemyTarget));
+        if (enemyMoveResult.getResults() == CollisionResult.Result.BLOCKED) {
+          continue; // Walls, the exit and other enemies all refuse an enemy; try another direction.
         }
 
-        CollisionResult enemyMoveResult = enemy.collide(enemyNewPosition);
         board[enemy.getPosn().row()][enemy.getPosn().col()] = null;
         set(enemy, enemyTarget);
 
