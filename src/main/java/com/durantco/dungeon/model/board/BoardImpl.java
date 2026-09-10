@@ -81,9 +81,16 @@ public class BoardImpl implements Board {
   }
 
   @Override
-  public void init(int enemies, int treasures, int walls) {
-    int piecesCount = enemies + treasures + walls + 2 + 2;
-    int openSpaces = width * height;
+  public boolean canFit(LevelSpec spec) {
+    return spec.cellsRequired() <= width * height;
+  }
+
+  @Override
+  public void init(LevelSpec spec) {
+    if (!canFit(spec)) {
+      throw new IllegalArgumentException(
+          "Level needs " + spec.cellsRequired() + " cells but the board has " + (width * height));
+    }
 
     // Clear the board --> visit every index and set to null
     for (int i = 0; i < height; i++) {
@@ -91,36 +98,29 @@ public class BoardImpl implements Board {
         board[i][j] = null;
       }
     }
-    // Condition check to see if there are enough spots for pieces
-    if (piecesCount > openSpaces) {
-      throw new IllegalArgumentException();
-    }
     // set a position for the hero
     this.hero = new Hero();
     set(hero, randomSpace());
     // set a position for the exit
-    Exit exit = new Exit();
-    set(exit, randomSpace());
+    set(new Exit(), randomSpace());
     // set position for each enemy
     this.enemies = new ArrayList<>(); // clear the list
-    for (int i = 0; i < enemies; i++) {
+    for (int i = 0; i < spec.enemies(); i++) {
       Enemy enemy = new Enemy();
       set(enemy, randomSpace());
       this.enemies.add(enemy);
     }
     // set a position for each treasure
-    for (int i = 0; i < treasures; i++) {
-      Treasure treasure = new Treasure();
-      set(treasure, randomSpace());
+    for (int i = 0; i < spec.treasures(); i++) {
+      set(new Treasure(), randomSpace());
     }
     // set a position for each wall
-    for (int i = 0; i < walls; i++) {
-      Wall w = new Wall();
-      set(w, randomSpace());
+    for (int i = 0; i < spec.walls(); i++) {
+      set(new Wall(), randomSpace());
     }
-    for (int i = 0; i < 2; i++) {
-      Thief thief = new Thief();
-      set(thief, randomSpace());
+    // set a position for each thief
+    for (int i = 0; i < spec.thieves(); i++) {
+      set(new Thief(), randomSpace());
     }
   }
 

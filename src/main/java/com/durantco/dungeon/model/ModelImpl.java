@@ -2,6 +2,7 @@ package com.durantco.dungeon.model;
 
 import com.durantco.dungeon.model.board.Board;
 import com.durantco.dungeon.model.board.BoardImpl;
+import com.durantco.dungeon.model.board.LevelSpec;
 import com.durantco.dungeon.model.board.Posn;
 import com.durantco.dungeon.model.pieces.CollisionResult;
 import com.durantco.dungeon.model.pieces.Piece;
@@ -107,12 +108,21 @@ public class ModelImpl implements Model {
     this.status = STATUS.IN_PROGRESS;
     this.currentScore = 0;
     this.level = 1;
-    try {
-      board.init(level + 1, 2, 2);
-    } catch (IllegalArgumentException e) {
-      endGame();
-    }
+    buildCurrentLevel();
     notifyObservers();
+  }
+
+  /**
+   * Populates the board for the current level, ending the game if the level's pieces will not fit.
+   * Asking the board whether the level fits replaces catching an exception thrown from init.
+   */
+  private void buildCurrentLevel() {
+    LevelSpec spec = LevelSpec.forLevel(level);
+    if (!board.canFit(spec)) {
+      endGame();
+      return;
+    }
+    board.init(spec);
   }
 
   @Override
@@ -130,11 +140,7 @@ public class ModelImpl implements Model {
     currentScore += result.getPoints();
     if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       level++;
-      try {
-        board.init(level + 1, 2, 2);
-      } catch (IllegalArgumentException e) {
-        endGame();
-      }
+      buildCurrentLevel();
     } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
       endGame();
     }
@@ -147,11 +153,7 @@ public class ModelImpl implements Model {
     currentScore += result.getPoints();
     if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       level++;
-      try {
-        board.init(level + 1, 2, 2);
-      } catch (IllegalArgumentException e) {
-        endGame();
-      }
+      buildCurrentLevel();
     } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
       endGame();
     }
@@ -164,11 +166,7 @@ public class ModelImpl implements Model {
     currentScore += result.getPoints();
     if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       level++;
-      try {
-        board.init(level + 1, 2, 2);
-      } catch (IllegalArgumentException e) {
-        endGame();
-      }
+      buildCurrentLevel();
     } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
       endGame();
     }
@@ -181,11 +179,7 @@ public class ModelImpl implements Model {
     currentScore += result.getPoints();
     if (result.getResults() == CollisionResult.Result.NEXT_LEVEL) {
       level++;
-      try {
-        board.init(level + 1, 2, 2);
-      } catch (IllegalArgumentException e) {
-        endGame();
-      }
+      buildCurrentLevel();
     } else if (result.getResults() == CollisionResult.Result.GAME_OVER) {
       endGame();
     }
