@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.durantco.dungeon.model.pieces.CollisionResult;
+import com.durantco.dungeon.model.pieces.Enemy;
 import com.durantco.dungeon.model.pieces.Piece;
 import com.durantco.dungeon.model.pieces.PieceType;
 import com.durantco.dungeon.support.Boards;
@@ -143,6 +144,44 @@ class EnemyMovementTest {
       // The wall sits on the enemy's preferred upward step, so it must pick another direction.
       assertNotEquals(new Posn(2, 1), firstEnemy(board));
       assertEquals(PieceType.WALL, board.get(new Posn(1, 1)).getType());
+    }
+  }
+
+  @Nested
+  class Difficulty {
+
+    @Test
+    @DisplayName("turning on hard mode re-arms the enemies already on the board")
+    void changingDifficultyReArmsExistingEnemies() {
+      BoardImpl board = boardOf(1L, "H...", "....", "..E.");
+      Piece enemy = board.get(new Posn(2, 2));
+      assertTrue(((Enemy) enemy).movement() instanceof WanderStrategy);
+
+      board.setHardMode(true);
+      assertTrue(((Enemy) enemy).movement() instanceof ChaseStrategy);
+
+      board.setHardMode(false);
+      assertTrue(((Enemy) enemy).movement() instanceof WanderStrategy);
+    }
+
+    @Test
+    @DisplayName("enemies spawned into a level are armed for the current difficulty")
+    void spawnedEnemiesMatchTheDifficulty() {
+      BoardImpl board = new BoardImpl(28, 18, new Random(1L), new BspLevelGenerator());
+      board.setHardMode(true);
+      board.init(LevelSpec.forLevel(2));
+
+      int checked = 0;
+      for (int row = 0; row < board.getHeight(); row++) {
+        for (int col = 0; col < board.getWidth(); col++) {
+          Piece piece = board.get(new Posn(row, col));
+          if (piece != null && piece.getType() == PieceType.ENEMY) {
+            assertTrue(((Enemy) piece).movement() instanceof ChaseStrategy);
+            checked++;
+          }
+        }
+      }
+      assertEquals(3, checked);
     }
   }
 

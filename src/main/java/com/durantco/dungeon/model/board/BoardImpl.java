@@ -17,6 +17,7 @@ public class BoardImpl implements Board {
   private final Random rng;
   private final LevelGenerator generator;
   private final AStarPathfinder pathfinder = new AStarPathfinder();
+  private final MovementContext movementContext = new BoardMovementContext();
 
   /** The wall count the game shipped with, used when no generator is supplied. */
   private static final int DEFAULT_SCATTERED_WALLS = 2;
@@ -97,6 +98,19 @@ public class BoardImpl implements Board {
   @Override
   public void setHardMode(boolean hardMode) {
     this.hardMode = hardMode;
+    // Re-arm the enemies already on the board, so a difficulty change takes effect at once rather
+    // than only for the next level's spawns.
+    for (Enemy enemy : enemies) {
+      enemy.setMovement(strategyForSpawn());
+    }
+  }
+
+  /** The behaviour a newly spawned enemy is given at the current difficulty. */
+  private MovementStrategy strategyForSpawn() {
+    if (hardMode) {
+      return new ChaseStrategy();
+    }
+    return new WanderStrategy();
   }
 
   // Random width and height helper method to find empty spaces
@@ -173,7 +187,7 @@ public class BoardImpl implements Board {
     // set position for each enemy
     this.enemies = new ArrayList<>(); // clear the list
     for (int i = 0; i < spec.enemies(); i++) {
-      Enemy enemy = new Enemy();
+      Enemy enemy = new Enemy(strategyForSpawn());
       set(enemy, randomSpace());
       this.enemies.add(enemy);
     }
@@ -260,41 +274,6 @@ public class BoardImpl implements Board {
   }
 
   /**
-   * Where one enemy should step this turn.
-   *
-   * <p>In hard mode the enemy follows a shortest path to the hero, so it rounds corners and walks
-   * around walls instead of pressing against them. In easy mode it wanders, trying the four directions
-   * in a shuffled order.
-   *
-   * @return the cell to step into, or empty if the enemy has nowhere to go
-   */
-  private Optional<Posn> chooseEnemyStep(Enemy enemy) {
-    if (hardMode) {
-      return pathfinder.nextStep(
-          enemy.getPosn(), hero.getPosn(), target -> enemyCanEnter(enemy, target));
-    }
-    return wanderStep(enemy);
-  }
-
-  /** Picks the first of the four directions, shuffled, that this enemy is allowed to enter. */
-  private Optional<Posn> wanderStep(Enemy enemy) {
-    int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-    for (int i = directions.length - 1; i > 0; i--) {
-      int j = rng.nextInt(i + 1);
-      int[] swap = directions[i];
-      directions[i] = directions[j];
-      directions[j] = swap;
-    }
-    for (int[] direction : directions) {
-      Posn target = enemy.getPosn().offset(direction[0], direction[1]);
-      if (enemyCanEnter(enemy, target)) {
-        return Optional.of(target);
-      }
-    }
-    return Optional.empty();
-  }
-
-  /**
    * Whether an enemy may enter a cell. Asked of the occupant rather than tested with instanceof, so
    * pathfinding and movement can never disagree. The hero's cell counts as enterable: reaching it is
    * the point, and it ends the game rather than being refused.
@@ -308,6 +287,30 @@ public class BoardImpl implements Board {
       return true;
     }
     return occupant.onEnemyEnter(enemy).getResults() != CollisionResult.Result.BLOCKED;
+  }
+
+  /** The board's answer to what an enemy is allowed to know when choosing a step. */
+  private final class BoardMovementContext implements MovementContext {
+
+    @Override
+    public Posn heroPosition() {
+      return hero.getPosn();
+    }
+
+    @Override
+    public boolean canEnter(Enemy enemy, Posn target) {
+      return enemyCanEnter(enemy, target);
+    }
+
+    @Override
+    public Optional<Posn> stepTowards(Enemy enemy, Posn goal) {
+      return pathfinder.nextStep(enemy.getPosn(), goal, target -> enemyCanEnter(enemy, target));
+    }
+
+    @Override
+    public Random rng() {
+      return rng;
+    }
   }
 
   private boolean inBounds(Posn p) {
@@ -358,7 +361,7 @@ public class BoardImpl implements Board {
     int totalPoints = heroMoveResult.getPoints();
 
     for (Enemy enemy : enemies) {
-      Optional<Posn> step = chooseEnemyStep(enemy);
+      Optional<Posn> step = enemy.movement().chooseStep(enemy, movementContext);
       if (step.isEmpty()) {
         continue; // nowhere to go this turn
       }
