@@ -2,6 +2,8 @@ package com.durantco.dungeon.model;
 
 import com.durantco.dungeon.model.board.BoardImpl;
 import com.durantco.dungeon.model.board.Difficulty;
+import com.durantco.dungeon.persistence.HighScoreStore;
+import com.durantco.dungeon.persistence.InMemoryHighScoreStore;
 import java.util.Random;
 
 /**
@@ -20,10 +22,19 @@ public final class GameFactory {
    * @return a model ready for startGame, seeded so the whole game is reproducible
    */
   public static Model create(GameSetup setup) {
+    return create(setup, new InMemoryHighScoreStore());
+  }
+
+  /**
+   * @param setup the game to build
+   * @param highScores where the best score is kept between runs
+   * @return a model ready for startGame, seeded so the whole game is reproducible
+   */
+  public static Model create(GameSetup setup, HighScoreStore highScores) {
     BoardImpl board =
         new BoardImpl(
             setup.width(), setup.height(), new Random(setup.seed()), setup.generator().create());
-    Model model = new ModelImpl(board);
+    Model model = new ModelImpl(board, highScores);
     // Set the difficulty through the model rather than straight onto the board: the model keeps its own
     // record of it for the title screen to display, so reaching past it leaves the two disagreeing.
     model.setHardMode(setup.difficulty() == Difficulty.HARD);

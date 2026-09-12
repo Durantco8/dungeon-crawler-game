@@ -7,13 +7,15 @@ import com.durantco.dungeon.model.board.Posn;
 import com.durantco.dungeon.model.pieces.CollisionResult;
 import com.durantco.dungeon.model.pieces.Piece;
 import java.util.ArrayList;
+import com.durantco.dungeon.persistence.HighScoreStore;
+import com.durantco.dungeon.persistence.InMemoryHighScoreStore;
 import java.util.List;
 import java.util.Random;
 
 public class ModelImpl implements Model {
   private Board board;
   private int currentScore;
-  private int highScore;
+  private final HighScoreStore highScores;
   private int level;
   private Model.STATUS status;
   private List<Observer> observers;
@@ -42,9 +44,19 @@ public class ModelImpl implements Model {
    * @param board the board to drive
    */
   public ModelImpl(Board board) {
+    this(board, new InMemoryHighScoreStore());
+  }
+
+  /**
+   * Creates a model over an existing board, keeping its best score somewhere that outlives the process.
+   *
+   * @param board the board to drive
+   * @param highScores where the best score is read from and recorded to
+   */
+  public ModelImpl(Board board, HighScoreStore highScores) {
     this.board = board;
     this.currentScore = 0;
-    this.highScore = 0;
+    this.highScores = highScores;
     this.level = 0;
     this.status = STATUS.END_GAME;
     this.observers = new ArrayList<>();
@@ -90,7 +102,7 @@ public class ModelImpl implements Model {
 
   @Override
   public int getHighScore() {
-    return highScore;
+    return highScores.highest();
   }
 
   @Override
@@ -128,9 +140,8 @@ public class ModelImpl implements Model {
   @Override
   public void endGame() {
     this.status = STATUS.END_GAME;
-    if (currentScore > highScore) {
-      highScore = currentScore;
-    }
+    // The store keeps only an improvement, so there is no comparison to duplicate here.
+    highScores.record(currentScore);
     notifyObservers();
   }
 

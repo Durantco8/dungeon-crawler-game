@@ -5,6 +5,7 @@ import com.durantco.dungeon.controller.ControllerImpl;
 import com.durantco.dungeon.model.GameFactory;
 import com.durantco.dungeon.model.GameSetup;
 import com.durantco.dungeon.model.Model;
+import com.durantco.dungeon.persistence.FileHighScoreStore;
 import java.util.Random;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -20,7 +21,9 @@ public class AppLauncher extends Application {
     stage.setTitle("Coleton's Dungeon Crawler");
     // The composition root. A fresh seed each launch makes every session a different dungeon, and
     // describing the game as a setup rather than as scattered literals is what lets it be recorded.
-    Model model = GameFactory.create(GameSetup.standard(new Random().nextLong()));
+    Model model =
+        GameFactory.create(
+            GameSetup.standard(new Random().nextLong()), FileHighScoreStore.inUserHome());
     Controller controller = new ControllerImpl(model);
     View view = new View(controller, model, stage);
     model.addObserver(view);
