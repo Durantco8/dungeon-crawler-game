@@ -1,6 +1,7 @@
 package com.durantco.dungeon.support;
 
 import com.durantco.dungeon.model.board.Board;
+import com.durantco.dungeon.model.board.Difficulty;
 import com.durantco.dungeon.model.board.LevelSpec;
 import com.durantco.dungeon.model.board.Posn;
 import com.durantco.dungeon.model.pieces.CollisionResult;
@@ -85,6 +86,9 @@ public final class FakeBoard implements Board {
 
   @Override
   public void setHardMode(boolean hardMode) {}
+
+  @Override
+  public void setDifficulty(Difficulty difficulty) {}
 
   @Override
   public int getWidth() {

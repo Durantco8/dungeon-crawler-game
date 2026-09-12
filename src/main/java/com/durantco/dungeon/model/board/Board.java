@@ -24,6 +24,18 @@ public interface Board {
    */
   boolean canFit(LevelSpec spec);
 
+  /**
+   * Sets which enemies future levels spawn.
+   *
+   * @param difficulty the spawn mix to use
+   */
+  void setDifficulty(Difficulty difficulty);
+
+  /**
+   * Sets the difficulty using the player-facing vocabulary of a single hard-mode flag.
+   *
+   * @param hardMode true for hunting enemies, false for drifting ones
+   */
   void setHardMode(boolean hardMode);
 
   int getWidth();

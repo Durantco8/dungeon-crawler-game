@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.durantco.dungeon.model.GameSetup;
 import com.durantco.dungeon.model.Model;
 import com.durantco.dungeon.model.ModelImpl;
 import com.durantco.dungeon.model.pieces.CollisionResult;
@@ -25,8 +26,8 @@ import org.junit.jupiter.api.Test;
  */
 class HardModeDungeonTest {
 
-  private static final int WIDTH = 28;
-  private static final int HEIGHT = 18;
+  private static final int WIDTH = GameSetup.standard(0L).width();
+  private static final int HEIGHT = GameSetup.standard(0L).height();
 
   private static BoardImpl hardBoard(long seed, int level) {
     BoardImpl board = new BoardImpl(WIDTH, HEIGHT, new Random(seed), new BspLevelGenerator());

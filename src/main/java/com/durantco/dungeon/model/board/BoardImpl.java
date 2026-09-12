@@ -13,7 +13,7 @@ public class BoardImpl implements Board {
   private List<Enemy> enemies;
   private int width;
   private int height;
-  private boolean hardMode = false;
+  private Difficulty difficulty = Difficulty.EASY;
   private final Random rng;
   private final LevelGenerator generator;
   private final AStarPathfinder pathfinder = new AStarPathfinder();
@@ -99,22 +99,23 @@ public class BoardImpl implements Board {
   }
 
   @Override
-  public void setHardMode(boolean hardMode) {
-    this.hardMode = hardMode;
+  public void setDifficulty(Difficulty difficulty) {
+    this.difficulty = difficulty;
     // Re-arm the enemies already on the board, so a difficulty change takes effect at once rather
     // than only for the next level's spawns. Index order is the spawn order, so the mix is the same
     // one this level would have been given had it started at this difficulty.
     for (int i = 0; i < enemies.size(); i++) {
-      enemies.get(i).setMovement(difficulty().spawn(i, rng).movement());
+      enemies.get(i).setMovement(difficulty.spawn(i, rng).movement());
     }
   }
 
-  /** The spawn mix implied by the current difficulty setting. */
-  private Difficulty difficulty() {
+  @Override
+  public void setHardMode(boolean hardMode) {
     if (hardMode) {
-      return Difficulty.HARD;
+      setDifficulty(Difficulty.HARD);
+    } else {
+      setDifficulty(Difficulty.EASY);
     }
-    return Difficulty.EASY;
   }
 
   // Random width and height helper method to find empty spaces
@@ -194,7 +195,7 @@ public class BoardImpl implements Board {
     // set position for each enemy
     this.enemies = new ArrayList<>(); // clear the list
     for (int i = 0; i < spec.enemies(); i++) {
-      Enemy enemy = difficulty().spawn(i, rng);
+      Enemy enemy = difficulty.spawn(i, rng);
       set(enemy, randomSpace());
       this.enemies.add(enemy);
     }

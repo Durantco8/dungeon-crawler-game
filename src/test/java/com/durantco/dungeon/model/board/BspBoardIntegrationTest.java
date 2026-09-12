@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.durantco.dungeon.model.GameSetup;
 import com.durantco.dungeon.model.Model;
 import com.durantco.dungeon.model.ModelImpl;
 import com.durantco.dungeon.model.pieces.Piece;
@@ -17,13 +18,13 @@ import org.junit.jupiter.api.Test;
 /**
  * A board driven by the partitioning generator at the dimensions the game actually uses.
  *
- * <p>The dimensions are duplicated from AppLauncher rather than read from it, because AppLauncher is a
- * JavaFX class and the model tests stay headless.
+ * <p>The dimensions come from GameSetup.standard rather than being restated here, so these tests follow
+ * the shipped configuration if it ever changes.
  */
 class BspBoardIntegrationTest {
 
-  private static final int WIDTH = 28;
-  private static final int HEIGHT = 18;
+  private static final int WIDTH = GameSetup.standard(0L).width();
+  private static final int HEIGHT = GameSetup.standard(0L).height();
 
   private static BoardImpl board(long seed) {
     return new BoardImpl(WIDTH, HEIGHT, new Random(seed), new BspLevelGenerator());
