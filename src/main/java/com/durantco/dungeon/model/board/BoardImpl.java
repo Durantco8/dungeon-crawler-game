@@ -98,15 +98,18 @@ public class BoardImpl implements Board {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>This applies to the enemies future levels spawn. Enemies already on the board keep the behaviour
+   * and pace they were built with, because an archetype is both of those together: swapping only the
+   * behaviour of a placed enemy would leave it moving at the wrong speed for what it had become. The
+   * difficulty is part of a game's setup and fixed for its duration, and the toggle is only reachable
+   * with no game in progress, so there is nothing in flight to change.
+   */
   @Override
   public void setDifficulty(Difficulty difficulty) {
     this.difficulty = difficulty;
-    // Re-arm the enemies already on the board, so a difficulty change takes effect at once rather
-    // than only for the next level's spawns. Index order is the spawn order, so the mix is the same
-    // one this level would have been given had it started at this difficulty.
-    for (int i = 0; i < enemies.size(); i++) {
-      enemies.get(i).setMovement(difficulty.spawn(i, rng).movement());
-    }
   }
 
   @Override

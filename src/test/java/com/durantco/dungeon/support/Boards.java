@@ -1,9 +1,13 @@
 package com.durantco.dungeon.support;
 
+import com.durantco.dungeon.model.board.Board;
+import com.durantco.dungeon.model.board.ChaseStrategy;
+import com.durantco.dungeon.model.board.Posn;
 import com.durantco.dungeon.model.pieces.Enemy;
 import com.durantco.dungeon.model.pieces.Exit;
 import com.durantco.dungeon.model.pieces.Hero;
 import com.durantco.dungeon.model.pieces.Piece;
+import com.durantco.dungeon.model.pieces.PieceType;
 import com.durantco.dungeon.model.pieces.Thief;
 import com.durantco.dungeon.model.pieces.Treasure;
 import com.durantco.dungeon.model.pieces.Wall;
@@ -68,6 +72,26 @@ public final class Boards {
         return new Thief();
       default:
         throw new IllegalArgumentException("Unknown board symbol: " + symbol);
+    }
+  }
+
+  /**
+   * Arms every enemy on a board with a plain chaser that needs no line of sight.
+   *
+   * <p>For tests about how an enemy moves rather than about difficulty. Setting a difficulty only
+   * affects enemies spawned afterwards, and the hunters it spawns have to see the hero first, so
+   * neither is a way to make a hand-built enemy chase on cue.
+   *
+   * @param board the board whose enemies should chase
+   */
+  public static void armChasers(Board board) {
+    for (int row = 0; row < board.getHeight(); row++) {
+      for (int col = 0; col < board.getWidth(); col++) {
+        Piece piece = board.get(new Posn(row, col));
+        if (piece != null && piece.getType() == PieceType.ENEMY) {
+          ((Enemy) piece).setMovement(new ChaseStrategy());
+        }
+      }
     }
   }
 }

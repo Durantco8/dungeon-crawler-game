@@ -56,18 +56,6 @@ class EnemyMovementTest {
     return out.toString();
   }
 
-  /** Arms every enemy on the board with an ungated chaser, for tests about routing rather than sight. */
-  private static void armChasers(Board board) {
-    for (int row = 0; row < board.getHeight(); row++) {
-      for (int col = 0; col < board.getWidth(); col++) {
-        Piece piece = board.get(new Posn(row, col));
-        if (piece != null && piece.getType() == PieceType.ENEMY) {
-          ((Enemy) piece).setMovement(new ChaseStrategy());
-        }
-      }
-    }
-  }
-
   @Nested
   class HardMode {
 
@@ -75,7 +63,7 @@ class EnemyMovementTest {
     @DisplayName("closes the row gap when the hero is further away vertically")
     void chasesAlongRowsWhenRowsDominate() {
       BoardImpl board = boardOf(1L, ".H.", "...", ".E.");
-      armChasers(board);
+      Boards.armChasers(board);
       board.moveHero(0, 1);
 
       assertEquals(new Posn(1, 1), firstEnemy(board));
@@ -85,7 +73,7 @@ class EnemyMovementTest {
     @DisplayName("closes the column gap when the hero is further away horizontally")
     void chasesAlongColumnsWhenColumnsDominate() {
       BoardImpl board = boardOf(1L, "H...", "...E");
-      armChasers(board);
+      Boards.armChasers(board);
       board.moveHero(1, 0);
 
       assertEquals(new Posn(1, 2), firstEnemy(board));
@@ -94,7 +82,7 @@ class EnemyMovementTest {
     @Test
     void movesOnlyOneCellPerHeroMove() {
       BoardImpl board = boardOf(1L, ".H..", "....", "....", ".E..");
-      armChasers(board);
+      Boards.armChasers(board);
       Posn before = firstEnemy(board);
       board.moveHero(0, 1);
       Posn after = firstEnemy(board);
@@ -107,11 +95,11 @@ class EnemyMovementTest {
     @DisplayName("the chase consults no randomness, so the seed cannot change it")
     void isIndependentOfTheSeed() {
       BoardImpl first = boardOf(1L, ".H..", "....", ".E..");
-      armChasers(first);
+      Boards.armChasers(first);
       first.moveHero(0, 1);
 
       BoardImpl second = boardOf(999_999L, ".H..", "....", ".E..");
-      armChasers(second);
+      Boards.armChasers(second);
       second.moveHero(0, 1);
 
       assertEquals(render(first), render(second));
@@ -124,7 +112,7 @@ class EnemyMovementTest {
       // far left. The old greedy chase stepped along whichever axis was further, so it would have
       // moved right into the dead end and stayed there. A shortest path goes up instead.
       BoardImpl board = boardOf(1L, "....H", ".WWWW", "E....");
-      armChasers(board);
+      Boards.armChasers(board);
       board.moveHero(0, -1); // hero retreats to (0, 3), still on the far side of the wall
 
       assertEquals(new Posn(1, 0), firstEnemy(board), "The enemy should take the only real route");
@@ -137,7 +125,7 @@ class EnemyMovementTest {
       // an equally mobile hero it should close that gap and catch it, which the greedy chase could not
       // do from here because its first choice led into the dead-end corridor.
       BoardImpl board = boardOf(1L, "....H", ".WWWW", "E....");
-      armChasers(board);
+      Boards.armChasers(board);
 
       CollisionResult.Result outcome = CollisionResult.Result.CONTINUE;
       for (int turn = 0; turn < 6 && outcome == CollisionResult.Result.CONTINUE; turn++) {
@@ -152,7 +140,7 @@ class EnemyMovementTest {
     @DisplayName("a walled-off preferred direction falls back rather than standing still")
     void takesAnAlternativeWhenThePreferredDirectionIsBlocked() {
       BoardImpl board = boardOf(1L, "H...", ".W..", ".E..");
-      armChasers(board);
+      Boards.armChasers(board);
       board.moveHero(0, 1);
 
       // The wall sits on the enemy's preferred upward step, so it must pick another direction.
@@ -165,18 +153,17 @@ class EnemyMovementTest {
   class Difficulty {
 
     @Test
-    @DisplayName("turning on hard mode re-arms the enemies already on the board")
-    void changingDifficultyReArmsExistingEnemies() {
+    @DisplayName("difficulty applies to the enemies a level spawns, not to ones already placed")
+    void changingDifficultyLeavesPlacedEnemiesAlone() {
+      // Difficulty is part of a game's setup and fixed for its duration. The toggle is only reachable
+      // from the title screen, with no game in progress, so there is nothing to re-arm; and re-arming
+      // could only ever swap behaviour, never pace, which produced enemies matching no archetype.
       BoardImpl board = boardOf(1L, "H...", "....", "..E.");
-      Enemy enemy = (Enemy) board.get(new Posn(2, 2));
-      assertTrue(enemy.movement() instanceof WanderStrategy);
+      Enemy placed = (Enemy) board.get(new Posn(2, 2));
 
       board.setHardMode(true);
-      assertTrue(enemy.movement() instanceof SightedStrategy, "Hard mode enemies hunt by sight");
-      assertTrue(((SightedStrategy) enemy.movement()).whenSeen() instanceof ChaseStrategy);
-
-      board.setHardMode(false);
-      assertTrue(enemy.movement() instanceof WanderStrategy);
+      assertTrue(placed.movement() instanceof WanderStrategy, "A placed enemy keeps its behaviour");
+      assertEquals(ActionRate.NORMAL, placed.meter().rate());
     }
 
     @Test

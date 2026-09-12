@@ -86,7 +86,7 @@ class BoardCollisionTest {
   @DisplayName("an enemy catching the hero ends the game")
   void beingCaughtByAnEnemyEndsTheGame() {
     BoardImpl board = boardOf(".E.", "H..");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     CollisionResult result = board.moveHero(0, 1);
 
     assertEquals(CollisionResult.Result.GAME_OVER, result.getResults());
@@ -96,7 +96,7 @@ class BoardCollisionTest {
   @DisplayName("an enemy stepping onto treasure destroys it and scores nothing")
   void enemiesDestroyTreasureTheyStepOn() {
     BoardImpl board = boardOf("H..", ".TE");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     CollisionResult result = board.moveHero(1, 0);
 
     assertEquals(0, result.getPoints());
@@ -107,7 +107,7 @@ class BoardCollisionTest {
   @Test
   void enemiesCannotEnterTheExit() {
     BoardImpl board = boardOf("H..", ".XE");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     board.moveHero(1, 0);
 
     assertEquals(PieceType.EXIT, at(board, 1, 1).getType());
@@ -117,7 +117,7 @@ class BoardCollisionTest {
   @Test
   void enemiesCannotWalkThroughWalls() {
     BoardImpl board = boardOf("H..", ".WE");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     board.moveHero(1, 0);
 
     assertEquals(PieceType.WALL, at(board, 1, 1).getType());
@@ -127,7 +127,7 @@ class BoardCollisionTest {
   @DisplayName("no enemy is lost while the game is still running")
   void enemiesAreNeitherStackedNorLost() {
     BoardImpl board = boardOf("H....", ".....", ".EE..");
-    board.setHardMode(true);
+    Boards.armChasers(board);
 
     // Play until an enemy catches the hero. Past that point the board is no longer a valid game
     // state, because the model is what stops play on a game over.

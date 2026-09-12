@@ -64,7 +64,7 @@ class GameOverBoardStateTest {
   @DisplayName("being caught leaves both the hero and the enemy on the board")
   void aFatalEnemyMoveLosesNoPieces() {
     BoardImpl board = boardOf(".E.", "H..");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     CollisionResult result = board.moveHero(0, 1);
 
     assertEquals(CollisionResult.Result.GAME_OVER, result.getResults());
@@ -76,7 +76,7 @@ class GameOverBoardStateTest {
   @DisplayName("every piece still agrees with the cell it occupies after a fatal turn")
   void positionsStayConsistentAfterAFatalTurn() {
     BoardImpl board = boardOf(".E.", "H..");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     board.moveHero(0, 1);
 
     for (int row = 0; row < board.getHeight(); row++) {
@@ -95,7 +95,7 @@ class GameOverBoardStateTest {
   void noFurtherEnemyActsAfterTheHeroIsCaught() {
     // The first enemy in scan order reaches the hero, so the second must not move.
     BoardImpl board = boardOf(".E..", "H...", "...E");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     board.moveHero(0, 1);
 
     assertNotNull(board.get(new Posn(2, 3)), "The trailing enemy should not have moved");
@@ -106,7 +106,7 @@ class GameOverBoardStateTest {
   void theScoreFromEarlierInTheTurnIsStillReported() {
     // The hero collects treasure, then the enemy directly below it closes in and catches it.
     BoardImpl board = boardOf("HT.", ".E.");
-    board.setHardMode(true);
+    Boards.armChasers(board);
     CollisionResult result = board.moveHero(0, 1);
 
     assertEquals(CollisionResult.Result.GAME_OVER, result.getResults());
