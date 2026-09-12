@@ -11,6 +11,7 @@ import com.durantco.dungeon.model.pieces.CollisionResult;
 import com.durantco.dungeon.model.pieces.Enemy;
 import com.durantco.dungeon.model.pieces.Piece;
 import com.durantco.dungeon.model.pieces.PieceType;
+import com.durantco.dungeon.support.GameStates;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -144,7 +145,8 @@ class HardModeDungeonTest {
 
   /** Plays a fixed sequence of moves and records everything that happened, as a comparable string. */
   private static String transcript(long seed) {
-    Model model = new ModelImpl(new BoardImpl(WIDTH, HEIGHT, new Random(seed), new BspLevelGenerator()));
+    Model model =
+        new ModelImpl(new BoardImpl(WIDTH, HEIGHT, new Random(seed), new BspLevelGenerator()));
     model.setHardMode(true);
     model.startGame();
 
@@ -156,18 +158,7 @@ class HardModeDungeonTest {
         case 2 -> model.moveLeft();
         default -> model.moveUp();
       }
-      log.append(model.getCurScore()).append(':').append(model.getLevel()).append(':');
-      for (int row = 0; row < HEIGHT; row++) {
-        for (int col = 0; col < WIDTH; col++) {
-          Piece piece = model.get(new Posn(row, col));
-          if (piece == null) {
-            log.append('.');
-          } else {
-            log.append(piece.getType().name().charAt(0));
-          }
-        }
-      }
-      log.append('\n');
+      log.append(GameStates.render(model)).append('\n');
     }
     return log.toString();
   }

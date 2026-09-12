@@ -14,6 +14,7 @@ import com.durantco.dungeon.model.board.Posn;
 import com.durantco.dungeon.model.board.RandomScatterGenerator;
 import com.durantco.dungeon.model.pieces.Piece;
 import com.durantco.dungeon.model.pieces.PieceType;
+import com.durantco.dungeon.support.GameStates;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -150,18 +151,7 @@ class GameSetupTest {
         case 2 -> model.moveLeft();
         default -> model.moveUp();
       }
-      log.append(model.getCurScore()).append(':').append(model.getLevel()).append(':');
-      for (int row = 0; row < model.getHeight(); row++) {
-        for (int col = 0; col < model.getWidth(); col++) {
-          Piece piece = model.get(new Posn(row, col));
-          if (piece == null) {
-            log.append('.');
-          } else {
-            log.append(piece.getType().name().charAt(0));
-          }
-        }
-      }
-      log.append('\n');
+      log.append(GameStates.render(model)).append('\n');
     }
     return log.toString();
   }
