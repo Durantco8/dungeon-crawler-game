@@ -153,6 +153,11 @@ public final class GameSession implements Model {
   }
 
   @Override
+  public boolean heroCanEnter(Posn p) {
+    return current.heroCanEnter(p);
+  }
+
+  @Override
   public int getCurScore() {
     return current.getCurScore();
   }

@@ -243,7 +243,8 @@ public class BoardImpl implements Board {
     return true;
   }
 
-  private boolean heroCanEnter(Posn p) {
+  @Override
+  public boolean heroCanEnter(Posn p) {
     if (!inBounds(p)) {
       return false;
     }

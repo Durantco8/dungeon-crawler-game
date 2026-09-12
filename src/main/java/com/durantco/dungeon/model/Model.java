@@ -15,6 +15,14 @@ public interface Model extends Subject {
 
   Piece get(Posn p);
 
+  /**
+   * Whether the hero could move into a cell, by the same rule movement uses.
+   *
+   * @param p the cell to test
+   * @return true if the hero would not be refused
+   */
+  boolean heroCanEnter(Posn p);
+
   int getCurScore();
 
   int getHighScore();

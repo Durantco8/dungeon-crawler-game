@@ -47,4 +47,16 @@ public interface Board {
   void set(Piece p, Posn newPos);
 
   CollisionResult moveHero(int drow, int dcol);
+
+  /**
+   * Whether the hero could move into a cell.
+   *
+   * <p>Answered by asking the occupant, so this is the same rule movement itself uses rather than a second
+   * opinion that could drift from it. Useful to anything reasoning about routes: the solvability check,
+   * and agents driving the game without a player.
+   *
+   * @param p the cell to test
+   * @return true if the hero would not be refused
+   */
+  boolean heroCanEnter(Posn p);
 }

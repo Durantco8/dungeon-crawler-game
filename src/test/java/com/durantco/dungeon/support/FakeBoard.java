@@ -107,4 +107,9 @@ public final class FakeBoard implements Board {
 
   @Override
   public void set(Piece p, Posn newPos) {}
+
+  @Override
+  public boolean heroCanEnter(Posn p) {
+    return true;
+  }
 }

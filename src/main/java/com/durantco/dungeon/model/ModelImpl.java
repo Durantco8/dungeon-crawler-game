@@ -96,6 +96,11 @@ public class ModelImpl implements Model {
   }
 
   @Override
+  public boolean heroCanEnter(Posn p) {
+    return board.heroCanEnter(p);
+  }
+
+  @Override
   public int getCurScore() {
     return currentScore;
   }
