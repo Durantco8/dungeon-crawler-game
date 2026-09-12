@@ -13,4 +13,7 @@ public interface Controller {
   void moveRight();
 
   void startGame();
+
+  /** Takes back the last move, if there is one. */
+  void undo();
 }

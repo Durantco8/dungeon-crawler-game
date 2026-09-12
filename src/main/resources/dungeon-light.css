@@ -68,3 +68,15 @@
     -fx-fill: black;
     -fx-font-size: 15;
     }
+
+.undo-button {
+  -fx-background-color: lightgray;
+  -fx-text-fill: black;
+  -fx-font-size: 13px;
+  -fx-padding: 4px 14px;
+  -fx-background-radius: 4px;
+}
+
+.undo-button:disabled {
+  -fx-opacity: 0.45;
+}

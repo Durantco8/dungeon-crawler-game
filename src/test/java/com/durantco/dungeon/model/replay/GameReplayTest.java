@@ -5,10 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.durantco.dungeon.controller.Controller;
-import com.durantco.dungeon.controller.ControllerImpl;
-import com.durantco.dungeon.controller.RecordingController;
 import com.durantco.dungeon.model.GameFactory;
+import com.durantco.dungeon.model.GameSession;
 import com.durantco.dungeon.model.GameSetup;
 import com.durantco.dungeon.model.Model;
 import com.durantco.dungeon.model.board.Difficulty;
@@ -25,23 +23,21 @@ class GameReplayTest {
   private record Session(GameRecording recording, List<String> statesAfterEachMove) {}
 
   private static Session play(GameSetup setup, int moves, long inputSeed) {
-    Model model = GameFactory.create(setup);
-    Controller real = new ControllerImpl(model);
-    RecordingController recorder = new RecordingController(real, setup);
-    recorder.startGame();
+    GameSession session = new GameSession(setup);
+    session.startGame();
 
     Random inputs = new Random(inputSeed);
     List<String> states = new ArrayList<>();
     for (int i = 0; i < moves; i++) {
       switch (inputs.nextInt(4)) {
-        case 0 -> recorder.moveUp();
-        case 1 -> recorder.moveDown();
-        case 2 -> recorder.moveLeft();
-        default -> recorder.moveRight();
+        case 0 -> session.moveUp();
+        case 1 -> session.moveDown();
+        case 2 -> session.moveLeft();
+        default -> session.moveRight();
       }
-      states.add(GameStates.render(model));
+      states.add(GameStates.render(session));
     }
-    return new Session(recorder.recording(), states);
+    return new Session(session.recording(), states);
   }
 
   @Test

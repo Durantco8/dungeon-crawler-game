@@ -2,7 +2,7 @@ package com.durantco.dungeon.view;
 
 import com.durantco.dungeon.controller.Controller;
 import com.durantco.dungeon.controller.ControllerImpl;
-import com.durantco.dungeon.model.GameFactory;
+import com.durantco.dungeon.model.GameSession;
 import com.durantco.dungeon.model.GameSetup;
 import com.durantco.dungeon.model.Model;
 import com.durantco.dungeon.persistence.FileHighScoreStore;
@@ -21,8 +21,9 @@ public class AppLauncher extends Application {
     stage.setTitle("Coleton's Dungeon Crawler");
     // The composition root. A fresh seed each launch makes every session a different dungeon, and
     // describing the game as a setup rather than as scattered literals is what lets it be recorded.
+    // A session rather than a bare model: it keeps the record of play that undo replays from.
     Model model =
-        GameFactory.create(
+        new GameSession(
             GameSetup.standard(new Random().nextLong()), FileHighScoreStore.inUserHome());
     Controller controller = new ControllerImpl(model);
     View view = new View(controller, model, stage);

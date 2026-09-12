@@ -78,6 +78,12 @@ public class GameView implements FXComponent {
     VBox dPad = new VBox(5, up, lowerButtons);
     dPad.setAlignment(Pos.CENTER);
 
+    Button undo = new Button("Undo");
+    undo.setOnAction(e -> controller.undo());
+    undo.getStyleClass().add("undo-button");
+    // Nothing to take back at the start of a level, so the button says so rather than doing nothing.
+    undo.setDisable(!model.canUndo());
+
     String label;
     if (view.isDarkMode()) {
       label = "Light Mode";
@@ -93,7 +99,7 @@ public class GameView implements FXComponent {
                 + "However he is also trying not to get killed by the enemy");
     thiefMec.getStyleClass().add("thief-label");
 
-    VBox gameViewPage = new VBox(10, score, grid, dPad, toggleButton, thiefMec);
+    VBox gameViewPage = new VBox(10, score, grid, dPad, undo, toggleButton, thiefMec);
     gameViewPage.getStyleClass().add("game-Page");
     gameViewPage.setAlignment(Pos.CENTER);
 

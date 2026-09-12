@@ -36,6 +36,21 @@ public interface Model extends Subject {
 
   void moveRight();
 
+  /**
+   * Takes back the last move.
+   *
+   * <p>Defaults to doing nothing. A model that keeps no history of its game has nothing to take back,
+   * which is the same situation as undoing at the very start of a game, so it is not an error.
+   */
+  default void undo() {}
+
+  /**
+   * @return true if there is a move that could be taken back
+   */
+  default boolean canUndo() {
+    return false;
+  }
+
   enum STATUS {
     END_GAME,
     IN_PROGRESS

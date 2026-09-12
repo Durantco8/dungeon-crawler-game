@@ -35,6 +35,11 @@ public class ControllerImpl implements Controller {
   }
 
   @Override
+  public void undo() {
+    model.undo();
+  }
+
+  @Override
   public void setHardMode(boolean hardMode) {
     model.setHardMode(hardMode);
   }
