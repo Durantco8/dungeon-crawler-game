@@ -53,8 +53,8 @@ flowchart TB
 ```
 
 Everything above the model line knows about JavaFX; nothing below it does. The game logic runs headless,
-which is what lets 462 tests finish in a couple of seconds and lets the simulation harness play hundreds of
-games on a machine with no display.
+which is what lets the whole suite finish in a couple of seconds and lets the simulation harness play
+hundreds of games on a machine with no display.
 
 Persistence and tooling hang off the same model, never off the view:
 
