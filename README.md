@@ -37,8 +37,8 @@ _Not yet added._
 - **Save, load, and replay.** A saved game is a seed and a string of moves, so a whole session is about a
   kilobyte of readable text that replays exactly.
 - **Persistent high scores**, kept between runs.
-- **A headless simulation harness** that plays hundreds of games with scripted agents and reports what
-  happened.
+- **A headless simulation harness** that plays hundreds of games with four scripted agents, one of which
+  avoids enemies, and reports win rates, survival distributions, and generator statistics.
 - Two difficulties, dark and light themes.
 
 ## Running it
@@ -91,19 +91,41 @@ Generator
   regenerations 0
 ```
 
-Options: `--games N`, `--agent random|exit-runner|treasure-hunter`, `--seed N`, `--max-turns N`,
-`--hard`, `--help`. Every game is seeded, and the report names the seed of its shortest run, so any
-result can be reproduced by replaying that seed.
+Options: `--games N`, `--agent random|exit-runner|treasure-hunter|survivor`, `--seed N`,
+`--max-turns N`, `--hard`, `--help`. Every game is seeded, and the report names the seed of its shortest
+run, so any result can be reproduced by replaying that seed.
 
-Read those win rates with the caveat that the agents ignore enemies entirely. They measure whether a
-level can be navigated, not whether a careful player would survive it. The generator statistics are the
-unqualified part: across 250 generated levels, every one was solvable and none had to be regenerated.
+### What the agents measure
+
+Three of the four agents ignore enemies completely, so on their own they cannot tell you whether the game
+is hard or whether they are simply careless. The `survivor` agent exists to settle that: it has the same
+goal as `exit-runner` and differs *only* in avoiding danger, which isolates the variable.
+
+Over 200 games on hard, same seeds for both:
+
+| | exit-runner | survivor |
+| --- | --- | --- |
+| Median survival | 20 turns | **38 turns** |
+| 90th percentile | 46 turns | **253 turns** |
+| Reached the turn limit alive | 0% | **6.5%** |
+| Cleared level 1 | 53.5% | 56.0% |
+| Cleared level 2 | 42.1% | 50.9% |
+
+Caution roughly doubles median survival and lets some runs last indefinitely, so the earlier "100% of
+runs end with the hero caught" was partly an artefact of careless agents.
+
+But it barely moves the clear rates, and that is the more interesting half. Surviving and *progressing*
+turn out to be different problems: the survivor stays alive largely by declining to advance, and roughly
+half of all attempts at level 1 still fail either way. The difficulty is real, not an artefact.
+
+The generator statistics carry no such caveat. Across 250 generated levels, every one was solvable and
+none had to be regenerated.
 
 ## Architecture
 
 Model–View–Controller with the Observer pattern, and one rule that shapes everything else: **the model
-never imports JavaFX.** Game logic runs headless, which is why 462 tests finish in seconds and why the
-simulation harness can play hundreds of games on a machine with no display.
+never imports JavaFX.** Game logic runs headless, which is why the whole suite finishes in seconds and
+why the simulation harness can play hundreds of games on a machine with no display.
 
 [Full diagrams are in `docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), including how a turn resolves and how
 a level is built.
@@ -237,13 +259,13 @@ game that sometimes ignored a keypress would read as broken rather than as tacti
 
 ## Testing
 
-462 tests, all headless. Nothing in the test tree imports JavaFX.
+472 tests, all headless. Nothing in the test tree imports JavaFX.
 
 ```bash
 ./mvnw test
 ```
 
-Coverage outside the view sits at 98.6% of lines and 95.7% of branches, with a floor enforced in CI so a
+Coverage outside the view sits at 98.6% of lines and 95.3% of branches, with a floor enforced in CI so a
 change that quietly guts the tests fails the build. The view is excluded deliberately: counting it would
 measure how much interface exists rather than how well the game logic is covered.
 
