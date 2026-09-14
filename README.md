@@ -13,11 +13,17 @@ feature underneath.
 
 ## Screenshots
 
-<!-- TODO: add screenshots.
-     Suggested: the title screen, a generated dungeon on hard mode, and a game over.
-     Run with ./mvnw javafx:run, then drop the images in docs/images/ and link them here. -->
+A generated dungeon on hard mode, level 3. The room-and-corridor structure is the partitioning
+generator's work; the hero is beside the exit with treasure banked.
 
-_Not yet added._
+![A generated dungeon on hard mode](docs/images/dungeon-hard.png)
+
+| Title screen | The same dungeon, light theme |
+| --- | --- |
+| ![Title screen](docs/images/title-screen.png) | ![Light theme](docs/images/dungeon-light.png) |
+
+These are rendered from the game's own view classes at a fixed seed rather than captured by hand, so the
+board in them is a real dungeon this build produces and not a staged one.
 
 ## Features
 
