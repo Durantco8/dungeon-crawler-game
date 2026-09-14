@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,5 +77,63 @@ class ReachabilityTest {
   @DisplayName("an isolated single cell makes a layout disconnected")
   void recognisesAStrandedCell() {
     assertFalse(Reachability.isConnected(layout("...", "###", "..#")));
+  }
+
+  @Test
+  void measuresDistanceInStepsFromTheStart() {
+    DungeonLayout open = layout("...", "...", "...");
+    Map<Posn, Integer> distances = Reachability.distancesFrom(new Posn(0, 0), open::isWalkable);
+
+    assertEquals(0, distances.get(new Posn(0, 0)));
+    assertEquals(1, distances.get(new Posn(0, 1)));
+    assertEquals(1, distances.get(new Posn(1, 0)));
+    assertEquals(2, distances.get(new Posn(1, 1)));
+    assertEquals(4, distances.get(new Posn(2, 2)));
+  }
+
+  @Test
+  @DisplayName("distance is how far you must walk, not how far apart two cells look")
+  void measuresAroundWallsRatherThanThroughThem() {
+    // (0, 0) and (2, 0) are two cells apart in a straight line, but the wall between them means the
+    // only route is the long way round. That gap is exactly why enemy spawn margins count steps: two
+    // cells either side of a wall are close on the board and far apart in play.
+    DungeonLayout blocked = layout("....", "###.", "....");
+    Map<Posn, Integer> distances = Reachability.distancesFrom(new Posn(0, 0), blocked::isWalkable);
+
+    // Round the right-hand end of the wall: three steps across the top, two down, three back.
+    int straightLine = 2;
+    assertEquals(8, distances.get(new Posn(2, 0)));
+    assertTrue(distances.get(new Posn(2, 0)) > straightLine);
+  }
+
+  @Test
+  void leavesOutCellsItCannotReach() {
+    DungeonLayout split = layout("..#..", "..#..");
+    Map<Posn, Integer> distances = Reachability.distancesFrom(new Posn(0, 0), split::isWalkable);
+
+    assertTrue(distances.containsKey(new Posn(1, 1)));
+    assertFalse(distances.containsKey(new Posn(0, 3)), "The far side is unreachable, not distance zero");
+    assertEquals(4, distances.size());
+  }
+
+  @Test
+  @DisplayName("every cell is recorded at its shortest distance, not the first route tried")
+  void recordsShortestDistances() {
+    DungeonLayout open = layout(".....", ".....", ".....");
+    Map<Posn, Integer> distances = Reachability.distancesFrom(new Posn(1, 2), open::isWalkable);
+
+    for (Map.Entry<Posn, Integer> cell : distances.entrySet()) {
+      int manhattan =
+          Math.abs(cell.getKey().row() - 1) + Math.abs(cell.getKey().col() - 2);
+      assertEquals(manhattan, cell.getValue().intValue(), "Wrong distance to " + cell.getKey());
+    }
+  }
+
+  @Test
+  void reachesTheSameCellsAsAPlainFloodFill() {
+    DungeonLayout maze = layout(".....", "####.", ".....", ".####", ".....");
+    assertEquals(
+        Reachability.floodFrom(new Posn(0, 0), maze::isWalkable),
+        Reachability.distancesFrom(new Posn(0, 0), maze::isWalkable).keySet());
   }
 }

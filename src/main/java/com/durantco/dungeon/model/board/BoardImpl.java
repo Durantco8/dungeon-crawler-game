@@ -2,7 +2,9 @@ package com.durantco.dungeon.model.board;
 
 import com.durantco.dungeon.model.pieces.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -31,6 +33,12 @@ public class BoardImpl implements Board {
    * no such guarantee, such as the original random scatter.
    */
   private static final int MAX_GENERATION_ATTEMPTS = 10;
+
+  /**
+   * How many steps of clear ground an enemy must spawn beyond the hero, so that no game is lost before the
+   * player has had a turn.
+   */
+  private static final int MIN_ENEMY_SPAWN_DISTANCE = 4;
 
   private int generationAttempts;
 
@@ -195,11 +203,11 @@ public class BoardImpl implements Board {
     set(hero, randomSpace());
     // set a position for the exit
     set(new Exit(), randomSpace());
-    // set position for each enemy
+    // set position for each enemy, keeping them out of the hero's lap
     this.enemies = new ArrayList<>(); // clear the list
     for (int i = 0; i < spec.enemies(); i++) {
       Enemy enemy = difficulty.spawn(i, rng);
-      set(enemy, randomSpace());
+      set(enemy, enemySpawn());
       this.enemies.add(enemy);
     }
     // set a position for each treasure
@@ -262,6 +270,47 @@ public class BoardImpl implements Board {
    */
   public int generationAttempts() {
     return generationAttempts;
+  }
+
+  /**
+   * Picks a free cell far enough from the hero to give the player a turn or two before anything reaches
+   * them.
+   *
+   * <p>Without this, an enemy could spawn next to the hero and kill it on the opening move, which
+   * happened in roughly one game in thirty. Distance is measured in steps rather than straight lines,
+   * because two cells either side of a wall are close on the board and far apart in play.
+   *
+   * <p>If a dungeon is too cramped to honour the margin, the farthest cell available is used instead. An
+   * unfair spawn beats refusing to build the level.
+   */
+  private Posn enemySpawn() {
+    Map<Posn, Integer> fromHero = Reachability.distancesFrom(hero.getPosn(), this::heroCanEnter);
+
+    List<Posn> roomy = new ArrayList<>();
+    Posn farthest = null;
+    int farthestDistance = -1;
+    for (Map.Entry<Posn, Integer> cell : fromHero.entrySet()) {
+      if (board[cell.getKey().row()][cell.getKey().col()] != null) {
+        continue; // already occupied
+      }
+      if (cell.getValue() >= MIN_ENEMY_SPAWN_DISTANCE) {
+        roomy.add(cell.getKey());
+      }
+      if (cell.getValue() > farthestDistance) {
+        farthestDistance = cell.getValue();
+        farthest = cell.getKey();
+      }
+    }
+
+    if (roomy.isEmpty()) {
+      if (farthest != null) {
+        return farthest;
+      }
+      return randomSpace(); // nothing is reachable from the hero at all; fall back to anywhere free
+    }
+    // Sorted before choosing so the pick depends only on the seed, not on hash iteration order.
+    roomy.sort(Comparator.comparingInt(Posn::row).thenComparingInt(Posn::col));
+    return roomy.get(rng.nextInt(roomy.size()));
   }
 
   @Override

@@ -2,8 +2,10 @@ package com.durantco.dungeon.model.board;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -43,6 +45,36 @@ public final class Reachability {
       }
     }
     return seen;
+  }
+
+  /**
+   * How many steps every reachable cell is from a starting cell.
+   *
+   * <p>The same search as {@link #floodFrom}, but keeping the depth at which each cell was found. Breadth
+   * first order guarantees the first arrival at a cell is by a shortest route, so the recorded distance is
+   * the real one.
+   *
+   * @param start where to measure from; recorded at distance zero
+   * @param passable whether a cell may be entered; must reject cells outside the grid
+   * @return each reachable cell and its distance in steps
+   */
+  public static Map<Posn, Integer> distancesFrom(Posn start, Predicate<Posn> passable) {
+    Map<Posn, Integer> distances = new HashMap<>();
+    Deque<Posn> frontier = new ArrayDeque<>();
+    distances.put(start, 0);
+    frontier.add(start);
+    while (!frontier.isEmpty()) {
+      Posn at = frontier.removeFirst();
+      int nextDistance = distances.get(at) + 1;
+      for (int[] step : STEPS) {
+        Posn next = at.offset(step[0], step[1]);
+        if (passable.test(next) && !distances.containsKey(next)) {
+          distances.put(next, nextDistance);
+          frontier.add(next);
+        }
+      }
+    }
+    return distances;
   }
 
   /**
