@@ -62,9 +62,12 @@ public final class Simulate {
       case "random" -> new RandomAgent(new Random(seed));
       case "exit-runner" -> new ExitRunnerAgent(new Random(seed));
       case "treasure-hunter" -> new TreasureHunterAgent(new Random(seed));
+      case "survivor" -> new SurvivorAgent(new Random(seed));
       default ->
           throw new IllegalArgumentException(
-              "Unknown agent: " + name + ". Try random, exit-runner or treasure-hunter.");
+              "Unknown agent: "
+                  + name
+                  + ". Try random, exit-runner, treasure-hunter or survivor.");
     };
   }
 
@@ -76,7 +79,8 @@ public final class Simulate {
         Runs dungeon crawler games with no display and reports what happened.
 
           --games N       how many games to play (default 100)
-          --agent NAME    random, exit-runner or treasure-hunter (default treasure-hunter)
+          --agent NAME    random, exit-runner, treasure-hunter or survivor
+                          (default treasure-hunter)
           --seed N        the first seed; games use consecutive seeds from here (default 1)
           --max-turns N   give up on a game after this many moves (default 500)
           --hard          spawn hunting enemies instead of drifting ones
