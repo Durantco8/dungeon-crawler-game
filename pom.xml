@@ -112,6 +112,43 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <!--
+                      A floor rather than a target. Coverage currently sits far above these numbers; the
+                      point is that a change which quietly guts the tests fails the build instead of
+                      passing it. The view and the launcher are excluded: they are JavaFX, deliberately not
+                      unit tested, and counting them would measure how much UI exists rather than how well
+                      the game logic is covered.
+                    -->
+                    <execution>
+                        <id>check</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>com/durantco/dungeon/view/**</exclude>
+                                <exclude>com/durantco/dungeon/Main.class</exclude>
+                            </excludes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.85</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
